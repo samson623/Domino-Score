@@ -80,7 +80,6 @@ dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
@@ -109,3 +108,5 @@ Thumbs.db
 *.swp
 *.swo
 *~
+!public/index.html
+
