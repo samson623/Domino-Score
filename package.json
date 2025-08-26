@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node --no-warnings index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "keywords": [],
   "author": "",
@@ -14,8 +16,9 @@
     "@supabase/supabase-js": "^2.19.0",
     "common-tags": "^1.8.2",
     "dotenv": "^17.2.1",
-    "next": "^14.1.1"
+    "next": "^14.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
-  "description": "",
-  "type": "commonjs"
+  "description": ""
 }
