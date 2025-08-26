@@ -1,0 +1,229 @@
+        /* Dark mode base styles */
+        .dark {
+            background-color: #1f2937;
+            color: #f3f4f6;
+        }
+        
+        .dark body {
+            background-color: #1f2937;
+        }
+        
+        .domino-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .domino-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .dark .domino-card {
+            background: #374151;
+            color: #f3f4f6;
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #4b5563;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #1f2937;
+        }
+        
+        .dark .bg-gray-200 {
+            background-color: #4b5563;
+        }
+        
+        .dark .text-gray-500 {
+            color: #9ca3af;
+        }
+        
+        .dark .text-gray-600 {
+            color: #d1d5db;
+        }
+        
+        .dark .text-gray-700 {
+            color: #e5e7eb;
+        }
+        
+        .dark .border {
+            border-color: #4b5563;
+        }
+        
+        .dark .border-gray-600 {
+            border-color: #4b5563;
+        }
+        
+        /* Dark mode input styles */
+        .dark input,
+        .dark select {
+            background-color: #4b5563;
+            color: #f3f4f6;
+            border-color: #6b7280;
+        }
+        
+        .dark input::placeholder {
+            color: #9ca3af;
+        }
+        
+        .dark option {
+            background-color: #4b5563;
+            color: #f3f4f6;
+        }
+        
+        .score-btn {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .score-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            border-color: #3B82F6;
+        }
+        
+        .score-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .petaroll-badge {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        
+        .petarolled-badge {
+            background: linear-gradient(45deg, #DC2626, #991B1B);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        
+        .petaroll-alert {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .animate-pulse {
+            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .game-item:hover .delete-game-btn {
+            opacity: 1;
+        }
+
+        .delete-game-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .game-item:hover .edit-game-btn {
+            opacity: 1;
+        }
+
+        .edit-game-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .game-mode-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .game-mode-btn.active {
+            background-color: #3B82F6;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* Style for active desktop nav button */
+        .nav-btn.active {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: #3B82F6;
+        }
+
+        /* Style for active mobile nav button */
+        .mobile-nav-btn.active {
+            color: #3B82F6;
+            background-color: #e5e7eb; /* Light gray background */
+            border-radius: 8px;
+        }
+
+        .dark .mobile-nav-btn.active {
+            color: #60a5fa; /* Lighter blue for dark mode */
+            background-color: #374151; /* Contrasting dark gray */
+        }
+        
+        /* Custom score input styles */
+        .custom-score-input {
+            width: 100px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* Style for the add/subtract buttons */
+        .custom-score-input::-webkit-inner-spin-button,
+        .custom-score-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .custom-score-input {
+            -moz-appearance: textfield;
+        }
+
+        #achievementToast, #toast {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #10B981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        
+        /* Custom Scrollbar for Achievements */
+        #achievementsList::-webkit-scrollbar {
+          width: 6px;
+        }
+        #achievementsList::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        #achievementsList::-webkit-scrollbar-thumb {
+          background-color: #a0aec0;
+          border-radius: 20px;
+        }
+        .dark #achievementsList::-webkit-scrollbar-thumb {
+          background-color: #4a5568;
+        }
+
+        /* Style for selected radio button */
+        input[type="radio"]:checked {
+            accent-color: #10B981;
+        }
+        input[type="radio"]:checked + label {
+            font-weight: bold;
+            color: #10B981;
+        }
+        .dark input[type="radio"]:checked + label {
+            color: #34D399;
+        }
