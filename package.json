@@ -8,8 +8,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.19.0",
-    "common-tags": "^1.8.2"
+    "@supabase/supabase-js": "^2.56.0",
+    "common-tags": "^1.8.2",
+    "micro": "^10.0.1",
+    "stripe": "^18.4.0"
   },
   "description": "",
   "type": "commonjs"
