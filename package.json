@@ -2,16 +2,14 @@
   "name": "_domino-score",
   "version": "1.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "vercel-build": "echo 'No build required'"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.19.0",
-    "common-tags": "^1.8.2",
-    "dotenv": "^17.2.1"
+    "common-tags": "^1.8.2"
   },
   "description": "",
   "type": "commonjs"
