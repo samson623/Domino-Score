@@ -1,6 +1,9 @@
 {
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "framework": null,
+  "builds": [
+    { "src": "api/**/*.ts", "use": "@vercel/node" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "public/login.html", "use": "@vercel/static" }
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

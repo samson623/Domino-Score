@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://domino-score.vercel.app'}/billing`,
+      return_url: `${process.env.APP_URL ?? 'https://domino-score.vercel.app'}/billing`,
     });
     return res.status(200).json({ url: session.url });
   } catch (e: any) {
