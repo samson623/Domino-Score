@@ -2,6 +2,9 @@
   "name": "_domino-score",
   "version": "1.0.0",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,7 +15,10 @@
     "@vercel/node": "^3.0.0",
     "common-tags": "^1.8.2",
     "micro": "^10.0.1",
-    "stripe": "^18.4.0"
+    "stripe": "^18.4.0",
+    "next": "^14.2.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "description": "",
   "type": "commonjs"
