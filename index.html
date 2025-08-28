@@ -261,8 +261,8 @@
                 </button>
                 <!-- Authentication Button -->
                 <div id="authSection">
-                    <button id="signInBtn" onclick="handleSignIn()" class="hidden px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
-                        <i class="fas fa-sign-in-alt mr-1"></i>Sign In
+                    <button id="signInBtn" onclick="handleAuth()" class="hidden px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
+                        <i class="fas fa-sign-in-alt mr-1"></i>Sign In / Sign Up
                     </button>
                     <div id="userMenu" class="hidden relative">
                         <button onclick="toggleUserMenu()" class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition">
@@ -3602,8 +3602,8 @@
             }
         }
 
-        // Handle sign in
-        function handleSignIn() {
+        // Handle sign in/sign up
+        function handleAuth() {
             window.location.href = '/login.html';
         }
 
