@@ -9,6 +9,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+      // Public client-side fallback for local testing (no API needed)
+      window.__PUBLIC_ENV__ = {
+        supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
+        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
+      };
+    </script>
     <style>
         /* Dark mode base styles */
         .dark {
@@ -3539,18 +3546,9 @@
         // AUTHENTICATION & BILLING FUNCTIONS
         // =============================================
 
-        // Initialize Supabase client
-        async function initAuth() {
+        // Helper to initialize Supabase auth and wire UI
+        async function initializeSupabase(supabaseUrl, supabaseAnonKey) {
             try {
-                const response = await fetch('/api/public-env');
-                if (!response.ok) {
-                    console.error('Failed to fetch environment variables');
-                    return;
-                }
-                
-                const { supabaseUrl, supabaseAnonKey } = await response.json();
-                
-                // Import Supabase from CDN
                 const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
                 supabase = createClient(supabaseUrl, supabaseAnonKey, {
                     auth: {
@@ -3564,23 +3562,51 @@
                     console.log('Auth state changed:', event, session?.user?.email);
                     currentUser = session?.user || null;
                     updateAuthUI();
-                    
                     if (currentUser) {
                         loadUserBilling();
                     }
                 });
 
-                // Check current session
+                // Check current session on load
                 const { data: { session } } = await supabase.auth.getSession();
                 currentUser = session?.user || null;
                 updateAuthUI();
-                
                 if (currentUser) {
                     loadUserBilling();
                 }
+            } catch (e) {
+                console.error('Failed to set up Supabase:', e);
+                updateAuthUI();
+            }
+        }
+
+        // Initialize Supabase client (tries API first, then client fallback)
+        async function initAuth() {
+            try {
+                const response = await fetch('/api/public-env');
+                if (response.ok) {
+                    const { supabaseUrl, supabaseAnonKey } = await response.json();
+                    await initializeSupabase(supabaseUrl, supabaseAnonKey);
+                    return;
+                }
+                // API not available; try client fallback
+                console.warn('Env API not available, using client fallback');
+                const f = window.__PUBLIC_ENV__ || {};
+                if (f.supabaseUrl && f.supabaseAnonKey) {
+                    await initializeSupabase(f.supabaseUrl, f.supabaseAnonKey);
+                } else {
+                    updateAuthUI();
+                }
 
             } catch (error) {
-                console.error('Failed to initialize auth:', error);
+                console.warn('Env API fetch failed, using client fallback');
+                const f = window.__PUBLIC_ENV__ || {};
+                if (f.supabaseUrl && f.supabaseAnonKey) {
+                    await initializeSupabase(f.supabaseUrl, f.supabaseAnonKey);
+                } else {
+                    console.error('Failed to initialize auth:', error);
+                    updateAuthUI();
+                }
             }
         }
 
@@ -3604,7 +3630,10 @@
 
         // Handle sign in
         function handleSignIn() {
-            window.location.href = '/login.html';
+            // If served via Vercel/static hosting, public/ maps to root
+            // When opening the file locally (file://), fall back to public/login.html
+            const target = (location.protocol === 'file:') ? 'public/login.html' : '/login.html';
+            window.location.href = target;
         }
 
         // Handle sign out
