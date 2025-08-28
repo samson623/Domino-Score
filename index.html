@@ -261,25 +261,32 @@
                 </button>
                 <!-- Authentication Button -->
                 <div id="authSection">
-                    <button id="signInBtn" onclick="handleSignIn()" class="hidden px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
-                        <i class="fas fa-sign-in-alt mr-1"></i>Sign In
-                    </button>
-                    <div id="userMenu" class="hidden relative">
-                        <button onclick="toggleUserMenu()" class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition">
-                            <img id="userAvatar" class="w-6 h-6 rounded-full" src="" alt="">
-                            <span id="userName" class="text-sm font-medium max-w-20 truncate"></span>
-                            <i class="fas fa-chevron-down text-xs"></i>
+                    <div id="authButtons" class="hidden space-x-2">
+                        <button id="signInBtn" onclick="handleSignIn()" class="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
+                            <i class="fas fa-sign-in-alt mr-1"></i>Sign In
                         </button>
-                        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
-                            <div class="py-2">
-                                <button onclick="showBilling()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <i class="fas fa-credit-card mr-2"></i>Billing
-                                </button>
-                                <button onclick="handleSignOut()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
-                                </button>
+                        <button onclick="handleSignIn()" class="px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white transition text-sm font-medium">
+                            <i class="fas fa-user-plus mr-1"></i>Sign Up
+                        </button>
+                    </div>
+                    <div id="userMenu" class="hidden flex items-center space-x-2">
+                        <div class="relative">
+                            <button onclick="toggleUserMenu()" class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition">
+                                <img id="userAvatar" class="w-6 h-6 rounded-full" src="" alt="">
+                                <span id="userName" class="text-sm font-medium max-w-20 truncate"></span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
+                                <div class="py-2">
+                                    <button onclick="showBilling()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        <i class="fas fa-credit-card mr-2"></i>Billing
+                                    </button>
+                                </div>
                             </div>
                         </div>
+                        <button onclick="handleSignOut()" class="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 transition text-sm font-medium">
+                            <i class="fas fa-sign-out-alt mr-1"></i>Sign Out
+                        </button>
                     </div>
                 </div>
                 <div class="hidden md:flex space-x-2">
@@ -3586,18 +3593,18 @@
 
         // Update authentication UI
         function updateAuthUI() {
-            const signInBtn = document.getElementById('signInBtn');
+            const authButtons = document.getElementById('authButtons');
             const userMenu = document.getElementById('userMenu');
             const userName = document.getElementById('userName');
             const userAvatar = document.getElementById('userAvatar');
 
             if (currentUser) {
-                signInBtn.classList.add('hidden');
+                authButtons.classList.add('hidden');
                 userMenu.classList.remove('hidden');
                 userName.textContent = currentUser.user_metadata?.name || currentUser.email;
                 userAvatar.src = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.email)}&background=3B82F6&color=fff`;
             } else {
-                signInBtn.classList.remove('hidden');
+                authButtons.classList.remove('hidden');
                 userMenu.classList.add('hidden');
             }
         }
