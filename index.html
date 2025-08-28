@@ -260,9 +260,12 @@
                     <i class="fas fa-moon" id="themeIcon"></i>
                 </button>
                 <!-- Authentication Button -->
-                <div id="authSection">
+                <div id="authSection" class="flex items-center space-x-2">
                     <button id="signInBtn" onclick="handleSignIn()" class="hidden px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
-                        <i class="fas fa-sign-in-alt mr-1"></i>Sign In
+                        <i class="fas fa-user-plus mr-1"></i>Sign In / Sign Up
+                    </button>
+                    <button id="logOutBtn" onclick="handleSignOut()" class="hidden px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 transition text-sm font-medium">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Log Out
                     </button>
                     <div id="userMenu" class="hidden relative">
                         <button onclick="toggleUserMenu()" class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition">
@@ -274,9 +277,6 @@
                             <div class="py-2">
                                 <button onclick="showBilling()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <i class="fas fa-credit-card mr-2"></i>Billing
-                                </button>
-                                <button onclick="handleSignOut()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
                                 </button>
                             </div>
                         </div>
@@ -3587,17 +3587,20 @@
         // Update authentication UI
         function updateAuthUI() {
             const signInBtn = document.getElementById('signInBtn');
+            const logOutBtn = document.getElementById('logOutBtn');
             const userMenu = document.getElementById('userMenu');
             const userName = document.getElementById('userName');
             const userAvatar = document.getElementById('userAvatar');
 
             if (currentUser) {
                 signInBtn.classList.add('hidden');
+                logOutBtn.classList.remove('hidden');
                 userMenu.classList.remove('hidden');
                 userName.textContent = currentUser.user_metadata?.name || currentUser.email;
                 userAvatar.src = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.email)}&background=3B82F6&color=fff`;
             } else {
                 signInBtn.classList.remove('hidden');
+                logOutBtn.classList.add('hidden');
                 userMenu.classList.add('hidden');
             }
         }
