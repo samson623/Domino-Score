@@ -1050,6 +1050,42 @@
         let currentUser = null;
         let userBilling = null;
 
+        async function loadGames() {
+            games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+            if (currentUser && supabase) {
+                try {
+                    const { data, error } = await supabase
+                        .from('domino_games')
+                        .select('games')
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+                    if (!error && data && data.games) {
+                        games = data.games;
+                        localStorage.setItem('dominoGames', JSON.stringify(games));
+                    }
+                } catch (error) {
+                    console.error('Failed to load games:', error);
+                }
+            }
+            refreshAllData();
+        }
+
+        async function saveGames() {
+            localStorage.setItem('dominoGames', JSON.stringify(games));
+            if (currentUser && supabase) {
+                try {
+                    const { error } = await supabase
+                        .from('domino_games')
+                        .upsert({ user_id: currentUser.id, games });
+                    if (error) {
+                        console.error('Error saving games:', error);
+                    }
+                } catch (error) {
+                    console.error('Failed to save games:', error);
+                }
+            }
+        }
+
         // Sound Effects using Web Audio API
         let audioCtx;
         function initAudio() {
@@ -1228,7 +1264,7 @@
                 () => {
                     const today = new Date().toDateString();
                     games = games.filter(g => new Date(g.date).toDateString() !== today);
-                    localStorage.setItem('dominoGames', JSON.stringify(games));
+                    saveGames();
 
                     // Filter out achievements earned today
                     for (const entityId in achievements) {
@@ -1256,6 +1292,9 @@
                     localStorage.removeItem('dominoGames');
                     localStorage.removeItem('dominoAchievements');
                     localStorage.removeItem('dominoStreaks');
+                    if (supabase && currentUser) {
+                        supabase.from('domino_games').delete().eq('user_id', currentUser.id);
+                    }
                     
                     players = [];
                     teams = [];
@@ -1757,7 +1796,7 @@
                 'Are you sure you want to delete this game? This will affect all statistics.',
                 () => {
                     games = games.filter(g => g.id != gameId);
-                    localStorage.setItem('dominoGames', JSON.stringify(games));
+                    saveGames();
                     recalculateAllAchievements();
                     refreshAllData();
                     showToast('Game deleted successfully!');
@@ -1829,7 +1868,7 @@
             game.isPetaroll = document.getElementById('editIsPetaroll').checked;
             game.gameValue = game.isPetaroll ? 2 : 1;
 
-            localStorage.setItem('dominoGames', JSON.stringify(games));
+            saveGames();
             
             recalculateAllAchievements();
 
@@ -2386,7 +2425,7 @@
             };
             
             games.push(gameRecord);
-            localStorage.setItem('dominoGames', JSON.stringify(games));
+            saveGames();
 
             const loserId = currentGame.gameMode === 'team' ? loser.id : loser;
             const previousPetarolls = games.filter(g => g.loser === loserId && g.isPetaroll).length;
@@ -2450,7 +2489,7 @@
             };
             
             games.push(gameRecord);
-            localStorage.setItem('dominoGames', JSON.stringify(games));
+            saveGames();
 
             if (currentGame.score1 > currentGame.score2) matchWins1++; else matchWins2++;
             document.getElementById('winMessage').innerHTML = `<strong>${winnerName}</strong> wins!<br>Final Score: ${winnerScore} - ${loserScore}`;
@@ -3564,7 +3603,8 @@
                     console.log('Auth state changed:', event, session?.user?.email);
                     currentUser = session?.user || null;
                     updateAuthUI();
-                    
+                    loadGames();
+
                     if (currentUser) {
                         loadUserBilling();
                     }
@@ -3574,7 +3614,8 @@
                 const { data: { session } } = await supabase.auth.getSession();
                 currentUser = session?.user || null;
                 updateAuthUI();
-                
+                await loadGames();
+
                 if (currentUser) {
                     loadUserBilling();
                 }
