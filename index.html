@@ -1228,7 +1228,6 @@
                 () => {
                     const today = new Date().toDateString();
                     games = games.filter(g => new Date(g.date).toDateString() !== today);
-                    localStorage.setItem('dominoGames', JSON.stringify(games));
 
                     // Filter out achievements earned today
                     for (const entityId in achievements) {
@@ -1236,7 +1235,8 @@
                             return new Date(ach.date).toDateString() !== today;
                         });
                     }
-                    localStorage.setItem('dominoAchievements', JSON.stringify(achievements));
+
+                    saveData();
                     
                     closeResetModal();
                     refreshAllData();
@@ -1251,12 +1251,6 @@
                 'Reset Everything',
                 'Are you absolutely sure you want to delete all data? This action cannot be undone.',
                 () => {
-                    localStorage.removeItem('dominoPlayers');
-                    localStorage.removeItem('dominoTeams');
-                    localStorage.removeItem('dominoGames');
-                    localStorage.removeItem('dominoAchievements');
-                    localStorage.removeItem('dominoStreaks');
-                    
                     players = [];
                     teams = [];
                     games = [];
@@ -1264,6 +1258,8 @@
                     streaks = {};
                     currentGame = null;
                     
+                    saveData();
+
                     Object.values(chartInstances).forEach(chart => {
                         if (chart) chart.destroy();
                     });
@@ -1578,7 +1574,6 @@
                     key: achievementKey, 
                     date: new Date().toISOString() 
                 });
-                localStorage.setItem('dominoAchievements', JSON.stringify(achievements));
                 
                 const entityName = getEntityName(entityId);
                 console.log(`Achievement granted: ${achievementKey} to ${entityName}`);
@@ -1657,7 +1652,6 @@
                 }
             }
             
-            localStorage.setItem('dominoStreaks', JSON.stringify(streaks));
             
             console.log(`${winnerId} current streak: ${streaks[winnerId]} (added ${gameValue || 1})`);
             
@@ -1757,7 +1751,7 @@
                 'Are you sure you want to delete this game? This will affect all statistics.',
                 () => {
                     games = games.filter(g => g.id != gameId);
-                    localStorage.setItem('dominoGames', JSON.stringify(games));
+                    saveData();
                     recalculateAllAchievements();
                     refreshAllData();
                     showToast('Game deleted successfully!');
@@ -1829,7 +1823,7 @@
             game.isPetaroll = document.getElementById('editIsPetaroll').checked;
             game.gameValue = game.isPetaroll ? 2 : 1;
 
-            localStorage.setItem('dominoGames', JSON.stringify(games));
+            saveData();
             
             recalculateAllAchievements();
 
@@ -1862,8 +1856,7 @@
             });
 
             // Save the recalculated achievements
-            localStorage.setItem('dominoAchievements', JSON.stringify(achievements));
-            localStorage.setItem('dominoStreaks', JSON.stringify(streaks));
+            saveData();
             
             console.log('Achievement recalculation complete');
             console.log('Final achievements:', achievements);
@@ -2386,7 +2379,6 @@
             };
             
             games.push(gameRecord);
-            localStorage.setItem('dominoGames', JSON.stringify(games));
 
             const loserId = currentGame.gameMode === 'team' ? loser.id : loser;
             const previousPetarolls = games.filter(g => g.loser === loserId && g.isPetaroll).length;
@@ -2450,7 +2442,6 @@
             };
             
             games.push(gameRecord);
-            localStorage.setItem('dominoGames', JSON.stringify(games));
 
             if (currentGame.score1 > currentGame.score2) matchWins1++; else matchWins2++;
             document.getElementById('winMessage').innerHTML = `<strong>${winnerName}</strong> wins!<br>Final Score: ${winnerScore} - ${loserScore}`;
@@ -2476,6 +2467,8 @@
             console.log('Checking achievements for game:', gameRecord);
             checkAllAchievements(gameRecord);
             
+            saveData();
+
             refreshAllData();
             document.getElementById('winModal').classList.remove('hidden');
             disableScoreButtons();
@@ -2663,7 +2656,7 @@
             if (!nameExists) {
                 const newPlayer = { id: Date.now().toString(), name: playerName };
                 players.push(newPlayer);
-                localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                saveData();
             }
         }
 
@@ -2678,11 +2671,10 @@
                     const isPlayerInTeam = teams.some(team => team.player1 === playerToDelete.name || team.player2 === playerToDelete.name);
                     if (isPlayerInTeam) {
                         teams = teams.filter(team => team.player1 !== playerToDelete.name && team.player2 !== playerToDelete.name);
-                        localStorage.setItem('dominoTeams', JSON.stringify(teams));
                     }
 
                     players = players.filter(p => p.id !== playerId);
-                    localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                    saveData();
                     loadPlayers();
                     if (currentSection === 'teams') loadTeams();
                     showToast(`${playerToDelete.name} has been deleted.`);
@@ -2782,7 +2774,7 @@
                     player2: sortedNames[1],
                 };
                 teams.push(newTeam);
-                localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                saveData();
                 return newTeam;
             }
         }
@@ -2793,7 +2785,7 @@
                 'Are you sure you want to delete this team? This will not delete the players.',
                 () => {
                     teams = teams.filter(t => t.id !== teamId);
-                    localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                    saveData();
                     loadTeams();
                     showToast('Team deleted successfully.');
                 }
@@ -3422,7 +3414,7 @@
         function grantDominatorToQ() {
             grantAchievement('player:Q', 'dominator');
             streaks['player:Q'] = 5; // Ensure streak shows 5
-            localStorage.setItem('dominoStreaks', JSON.stringify(streaks));
+            saveData();
             refreshAllData();
             showToast('Dominator achievement granted to Q!');
         }
@@ -3504,7 +3496,7 @@
                 }
             });
             
-            localStorage.setItem('dominoStreaks', JSON.stringify(streaks));
+            saveData();
             console.log('Final streaks:', streaks);
         }
 
@@ -3536,6 +3528,125 @@
         }, 500);
 
         // =============================================
+        // DATA SYNC FUNCTIONS
+        // =============================================
+        async function loadRemoteData() {
+            if (!currentUser) return;
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+                const token = session.access_token;
+
+                showToast('Syncing your data...');
+                const response = await fetch('/api/games', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 401) {
+                    showToast('Authentication error. Please sign in again.');
+                    handleSignOut();
+                    return;
+                }
+                if (!response.ok) throw new Error('Failed to fetch remote data');
+
+                const remoteData = await response.json();
+
+                const localGamesData = localStorage.getItem('dominoGames');
+                const hasLocalData = localGamesData && JSON.parse(localGamesData).length > 0;
+
+                if (remoteData) {
+                    console.log('Loading data from remote source.');
+                    players = remoteData.players || [];
+                    teams = remoteData.teams || [];
+                    games = remoteData.games || [];
+                    achievements = remoteData.achievements || {};
+                    streaks = remoteData.streaks || {};
+
+                    if (hasLocalData) {
+                        console.warn('Local data exists but is being overwritten by remote data.');
+                    }
+                    showToast('Data synced successfully!');
+                } else if (hasLocalData) {
+                    console.log('No remote data, but local data found. Prompting for migration.');
+                    if (confirm("We've found game data on this device. Would you like to save it to your account to access it from anywhere?")) {
+                        await saveDataToDB(); // This will save the current (local) data to the DB
+                        showToast('Local data has been saved to your account!');
+                    }
+                } else {
+                    console.log('No remote or local data. Starting fresh.');
+                }
+
+                refreshAllData();
+
+            } catch (error) {
+                console.error('Error loading remote data:', error);
+                showToast('Could not load your saved data. Check connection.');
+            }
+        }
+
+        let saveDataTimeout;
+        function saveData() {
+            // Debounce save operation to avoid rapid-fire API calls
+            clearTimeout(saveDataTimeout);
+            saveDataTimeout = setTimeout(() => {
+                if (currentUser) {
+                    console.log('Saving data to the cloud...');
+                    showToast('Saving...');
+                    saveDataToDB().then(() => {
+                        showToast('Data saved!');
+                    });
+                } else {
+                    console.log('Saving data locally...');
+                    localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                    localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                    localStorage.setItem('dominoGames', JSON.stringify(games));
+                    localStorage.setItem('dominoAchievements', JSON.stringify(achievements));
+                    localStorage.setItem('dominoStreaks', JSON.stringify(streaks));
+                }
+            }, 1500); // Wait 1.5 seconds after the last action to save
+        }
+
+        async function saveDataToDB() {
+            if (!currentUser) {
+                // If not logged in, the saveData function handles localStorage.
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+                const token = session.access_token;
+
+                const allData = {
+                    players: players,
+                    teams: teams,
+                    games: games,
+                    achievements: achievements,
+                    streaks: streaks
+                };
+
+                const response = await fetch('/api/games', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(allData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save remote data');
+                }
+                console.log('Data saved to remote source.');
+            } catch (error) {
+                console.error('Error saving remote data:', error);
+                showToast('Could not save your data. Check connection.');
+            }
+        }
+
+        // =============================================
         // AUTHENTICATION & BILLING FUNCTIONS
         // =============================================
 
@@ -3561,12 +3672,22 @@
 
                 // Listen for auth changes
                 supabase.auth.onAuthStateChange((event, session) => {
-                    console.log('Auth state changed:', event, session?.user?.email);
+                    console.log('Auth state changed:', event, session);
                     currentUser = session?.user || null;
                     updateAuthUI();
-                    
-                    if (currentUser) {
+
+                    if (event === 'SIGNED_IN') {
+                        loadRemoteData();
                         loadUserBilling();
+                    } else if (event === 'SIGNED_OUT') {
+                        // User logged out, revert to local storage
+                        players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
+                        teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
+                        games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+                        achievements = JSON.parse(localStorage.getItem('dominoAchievements')) || {};
+                        streaks = JSON.parse(localStorage.getItem('dominoStreaks')) || {};
+                        refreshAllData();
+                        showToast("You are now working with local data.");
                     }
                 });
 
@@ -3577,6 +3698,7 @@
                 
                 if (currentUser) {
                     loadUserBilling();
+                    loadRemoteData();
                 }
 
             } catch (error) {
