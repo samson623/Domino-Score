@@ -1,8 +1,8 @@
-export default function Home() {
+function Home() {
   return null;
 }
 
-export async function getServerSideProps() {
+async function getServerSideProps() {
   return {
     redirect: {
       destination: '/index.html',
@@ -10,3 +10,6 @@ export async function getServerSideProps() {
     },
   };
 }
+
+exports.default = Home;
+exports.getServerSideProps = getServerSideProps;
