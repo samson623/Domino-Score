@@ -3564,9 +3564,11 @@
                     console.log('Auth state changed:', event, session?.user?.email);
                     currentUser = session?.user || null;
                     updateAuthUI();
-                    
+
                     if (currentUser) {
                         loadUserBilling();
+                    } else {
+                        window.location.href = '/login.html';
                     }
                 });
 
@@ -3574,9 +3576,11 @@
                 const { data: { session } } = await supabase.auth.getSession();
                 currentUser = session?.user || null;
                 updateAuthUI();
-                
+
                 if (currentUser) {
                     loadUserBilling();
+                } else {
+                    window.location.href = '/login.html';
                 }
 
             } catch (error) {
