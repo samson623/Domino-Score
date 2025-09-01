@@ -5,7 +5,7 @@
     {
       "source": "/:path*",
       "destination": "/index.html",
-      "missing": [{ "type": "filesystem" }]
+"missing": [{ "type": "host" }]
     }
   ]
 }
