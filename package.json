@@ -2,17 +2,22 @@
   "name": "_domino-score",
   "version": "1.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
-    "@vercel/node": "^3.0.0",
     "common-tags": "^1.8.2",
     "micro": "^10.0.1",
-    "stripe": "^18.4.0"
+    "stripe": "^18.4.0",
+    "next": "^14.2.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "description": "",
   "type": "commonjs"
