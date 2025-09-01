@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/login", "destination": "/public/login.html" },
+    { "source": "/login.html", "destination": "/public/login.html" },
+    {
+      "source": "/:path*",
+      "destination": "/index.html",
+      "missing": [{ "type": "filesystem" }]
+    }
+  ]
+}

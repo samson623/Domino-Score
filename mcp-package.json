@@ -1,0 +1,17 @@
+{
+  "name": "supabase-mcp-server",
+  "version": "1.0.0",
+  "description": "Supabase MCP Server for Domino Score App",
+  "main": "supabase-mcp-server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node supabase-mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@supabase/supabase-js": "^2.56.0"
+  },
+  "keywords": ["mcp", "supabase", "domino", "games"],
+  "author": "",
+  "license": "ISC"
+}
