@@ -3563,21 +3563,23 @@
                 supabase.auth.onAuthStateChange((event, session) => {
                     console.log('Auth state changed:', event, session?.user?.email);
                     currentUser = session?.user || null;
-                    updateAuthUI();
-                    
-                    if (currentUser) {
-                        loadUserBilling();
+                    if (!currentUser) {
+                        window.location.href = '/login.html';
+                        return;
                     }
+                    updateAuthUI();
+                    loadUserBilling();
                 });
 
                 // Check current session
                 const { data: { session } } = await supabase.auth.getSession();
                 currentUser = session?.user || null;
-                updateAuthUI();
-                
-                if (currentUser) {
-                    loadUserBilling();
+                if (!currentUser) {
+                    window.location.href = '/login.html';
+                    return;
                 }
+                updateAuthUI();
+                loadUserBilling();
 
             } catch (error) {
                 console.error('Failed to initialize auth:', error);
@@ -3611,12 +3613,8 @@
         async function handleSignOut() {
             if (supabase) {
                 await supabase.auth.signOut();
-                currentUser = null;
-                userBilling = null;
-                updateAuthUI();
-                updateBillingUI();
-                showToast('Signed out successfully');
             }
+            window.location.href = '/login.html';
         }
 
         // Toggle user menu dropdown
