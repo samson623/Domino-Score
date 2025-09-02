@@ -1023,11 +1023,22 @@
 
     <script>
         // Global variables
+        function loadFromLocalStorage(key, defaultValue) {
+            try {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : defaultValue;
+            } catch (e) {
+                console.error(`Failed to parse ${key} from localStorage`, e);
+                localStorage.removeItem(key);
+                return defaultValue;
+            }
+        }
+
         let currentGame = null;
         let currentGameMode = null;
-        let players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
-        let teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
-        let games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+        let players = loadFromLocalStorage('dominoPlayers', []);
+        let teams = loadFromLocalStorage('dominoTeams', []);
+        let games = loadFromLocalStorage('dominoGames', []);
         let currentSection = 'home';
         let chartInstances = {};
         let currentPeriod = 'daily';
@@ -1039,8 +1050,8 @@
         let remainingTime = 0;
         let editingGameId = null;
         
-        let achievements = JSON.parse(localStorage.getItem('dominoAchievements')) || {};
-        let streaks = JSON.parse(localStorage.getItem('dominoStreaks')) || {};
+        let achievements = loadFromLocalStorage('dominoAchievements', {});
+        let streaks = loadFromLocalStorage('dominoStreaks', {});
         const achievementDefinitions = {
             tenWins: { text: 'Ten Wins Club', icon: '🏅', description: 'Win 10 games' },
             anyPetaroll: { text: 'First PETAROLL', icon: '🔥', description: 'Achieve your first PETAROLL' },
@@ -3816,6 +3827,15 @@
                 loadUserBilling();
             }
         }
+
+        // Sync players and teams across browser tabs
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'dominoPlayers' || event.key === 'dominoTeams') {
+                players = loadFromLocalStorage('dominoPlayers', []);
+                teams = loadFromLocalStorage('dominoTeams', []);
+                refreshAllData();
+            }
+        });
 
         // Initialize authentication on app start
         initAuth();
