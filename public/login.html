@@ -30,8 +30,6 @@
   </div>
 
   <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
     const errEl = document.getElementById('err');
     const btn = document.getElementById('googleBtn');
 
@@ -49,16 +47,13 @@
 
     async function init() {
       try {
-        const { supabaseUrl, supabaseAnonKey } = await getEnv();
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+        const { supabaseUrl } = await getEnv();
 
-        btn.onclick = async () => {
+        btn.onclick = () => {
           errEl.textContent = '';
-          const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: `${location.origin}/index.html` }
-          });
-          if (error) errEl.textContent = error.message;
+          const redirectTo = `${location.origin}/index.html`;
+          const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+          window.location.href = authUrl;
         };
       } catch (e) {
         errEl.textContent = (e && e.message) ? e.message : 'Failed to initialize auth.';
