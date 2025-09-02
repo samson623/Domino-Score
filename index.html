@@ -1302,6 +1302,7 @@
             else if (section === 'leaderboard') loadLeaderboard();
             else if (section === 'live') loadLiveSection();
             else if (section === 'history') showHistory('daily');
+            else if (section === 'billing' && currentUser) loadUserBilling();
         }
 
         function refreshAllData() {
@@ -3782,40 +3783,6 @@
                 userDropdown.classList.add('hidden');
             }
         });
-
-        // Section navigation
-        function showSection(sectionName) {
-            // Hide all sections
-            const sections = ['home', 'live', 'players', 'teams', 'leaderboard', 'history', 'billing'];
-            sections.forEach(section => {
-                const element = document.getElementById(section + 'Section');
-                if (element) {
-                    element.classList.add('hidden');
-                }
-            });
-
-            // Show the selected section
-            const targetSection = document.getElementById(sectionName + 'Section');
-            if (targetSection) {
-                targetSection.classList.remove('hidden');
-                currentSection = sectionName;
-            }
-
-            // Update nav button states
-            document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.section === sectionName) {
-                    btn.classList.add('active');
-                }
-            });
-
-            // Load section-specific data
-            if (sectionName === 'home') {
-                refreshAllData();
-            } else if (sectionName === 'billing' && currentUser) {
-                loadUserBilling();
-            }
-        }
 
         // Initialize authentication on app start
         initAuth();
