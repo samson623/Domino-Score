@@ -17,13 +17,35 @@
     h1 { font-size:20px; margin:0 0 12px }
     button { width:100%; padding:12px 16px; border-radius:10px; border:0; cursor:pointer; font-weight:600; }
     .google { background:#fff; color:#111827; }
+    input { width:100%; padding:12px 16px; border-radius:10px; border:1px solid #1f2937; background:#111827; color:#fff; margin-bottom:12px; }
+    .primary { background:#3b82f6; color:#fff; }
+    .link { color:#60a5fa; cursor:pointer; }
+    .hidden { display:none; }
     .muted { color:#94a3b8; font-size:12px; margin-top:10px; text-align:center }
     .err { color:#fca5a5; margin-top:12px; min-height:20px }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Sign in to Domino Score</h1>
+    <h1 id="formTitle">Sign in to Domino Score</h1>
+
+    <div id="signInForm">
+      <input type="email" id="signInEmail" placeholder="Email" autocomplete="email" />
+      <input type="password" id="signInPassword" placeholder="Password" autocomplete="current-password" />
+      <button class="primary" id="emailSignInBtn">Sign In</button>
+      <div class="muted"><span class="link" id="showSignUp">Need an account? Sign up</span></div>
+    </div>
+
+    <div id="signUpForm" class="hidden">
+      <input type="email" id="signUpEmail" placeholder="Email" autocomplete="email" />
+      <input type="password" id="signUpPassword" placeholder="Password" autocomplete="new-password" />
+      <input type="text" id="signUpUsername" placeholder="Username (optional)" />
+      <input type="text" id="signUpFullName" placeholder="Full name (optional)" />
+      <button class="primary" id="emailSignUpBtn">Create Account</button>
+      <div class="muted"><span class="link" id="showSignIn">Already have an account? Sign in</span></div>
+    </div>
+
+    <div class="muted" style="margin:16px 0">or</div>
     <button class="google" id="googleBtn">Continue with Google</button>
     <div class="muted">You’ll be redirected back to the app after login.</div>
     <div class="err" id="err"></div>
@@ -33,7 +55,28 @@
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const errEl = document.getElementById('err');
-    const btn = document.getElementById('googleBtn');
+    const googleBtn = document.getElementById('googleBtn');
+    const emailSignInBtn = document.getElementById('emailSignInBtn');
+    const emailSignUpBtn = document.getElementById('emailSignUpBtn');
+    const signInForm = document.getElementById('signInForm');
+    const signUpForm = document.getElementById('signUpForm');
+    const showSignUp = document.getElementById('showSignUp');
+    const showSignIn = document.getElementById('showSignIn');
+    let supabase;
+
+    showSignUp.onclick = (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      signInForm.classList.add('hidden');
+      signUpForm.classList.remove('hidden');
+    };
+
+    showSignIn.onclick = (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      signUpForm.classList.add('hidden');
+      signInForm.classList.remove('hidden');
+    };
 
     async function getEnv() {
       try {
@@ -50,9 +93,9 @@
     async function init() {
       try {
         const { supabaseUrl, supabaseAnonKey } = await getEnv();
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+        supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
 
-        btn.onclick = async () => {
+        googleBtn.onclick = async () => {
           errEl.textContent = '';
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -60,6 +103,37 @@
           });
           if (error) errEl.textContent = error.message;
         };
+
+        emailSignInBtn.onclick = async () => {
+          errEl.textContent = '';
+          const email = document.getElementById('signInEmail').value;
+          const password = document.getElementById('signInPassword').value;
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            errEl.textContent = error.message;
+            return;
+          }
+          location.href = '/index.html';
+        };
+
+        emailSignUpBtn.onclick = async () => {
+          errEl.textContent = '';
+          const email = document.getElementById('signUpEmail').value;
+          const password = document.getElementById('signUpPassword').value;
+          const username = document.getElementById('signUpUsername').value;
+          const fullName = document.getElementById('signUpFullName').value;
+          const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { username: username || null, full_name: fullName || null } }
+          });
+          if (error) {
+            errEl.textContent = error.message;
+            return;
+          }
+          errEl.textContent = 'Check your email to confirm your account.';
+        };
+
       } catch (e) {
         errEl.textContent = (e && e.message) ? e.message : 'Failed to initialize auth.';
       }
