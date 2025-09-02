@@ -15,7 +15,9 @@
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#0b1220; color:#fff; }
     .card { background:#101827; padding:24px; border-radius:16px; width:100%; max-width:380px; box-shadow:0 10px 30px rgba(0,0,0,.4) }
     h1 { font-size:20px; margin:0 0 12px }
-    button { width:100%; padding:12px 16px; border-radius:10px; border:0; cursor:pointer; font-weight:600; }
+    input, button { width:100%; padding:12px 16px; border-radius:10px; border:0; font-weight:600; }
+    input { margin-bottom:8px; }
+    button { cursor:pointer; }
     .google { background:#fff; color:#111827; }
     .muted { color:#94a3b8; font-size:12px; margin-top:10px; text-align:center }
     .err { color:#fca5a5; margin-top:12px; min-height:20px }
@@ -24,6 +26,11 @@
 <body>
   <div class="card">
     <h1>Sign in to Domino Score</h1>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="emailSignInBtn">Sign In</button>
+    <button id="emailSignUpBtn">Sign Up</button>
+    <div class="muted">or</div>
     <button class="google" id="googleBtn">Continue with Google</button>
     <div class="muted">You’ll be redirected back to the app after login.</div>
     <div class="err" id="err"></div>
@@ -34,6 +41,10 @@
 
     const errEl = document.getElementById('err');
     const btn = document.getElementById('googleBtn');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const emailSignInBtn = document.getElementById('emailSignInBtn');
+    const emailSignUpBtn = document.getElementById('emailSignUpBtn');
 
     async function getEnv() {
       try {
@@ -60,6 +71,39 @@
           });
           if (error) errEl.textContent = error.message;
         };
+
+        emailSignInBtn.onclick = async () => {
+          errEl.textContent = '';
+          const email = emailInput.value;
+          const password = passwordInput.value;
+          if (!email || !password) {
+            errEl.textContent = 'Email and password required';
+            return;
+          }
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            errEl.textContent = error.message;
+          } else {
+            location.href = '/index.html';
+          }
+        };
+
+        emailSignUpBtn.onclick = async () => {
+          errEl.textContent = '';
+          const email = emailInput.value;
+          const password = passwordInput.value;
+          if (!email || !password) {
+            errEl.textContent = 'Email and password required';
+            return;
+          }
+          const { error } = await supabase.auth.signUp({ email, password });
+          if (error) {
+            errEl.textContent = error.message;
+          } else {
+            errEl.textContent = 'Check your email for confirmation link';
+          }
+        };
+
       } catch (e) {
         errEl.textContent = (e && e.message) ? e.message : 'Failed to initialize auth.';
       }
