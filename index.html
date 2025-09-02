@@ -3584,13 +3584,16 @@
         async function initAuth() {
             try {
                 const response = await fetch('/api/public-env');
-                if (response.ok) {
+                const contentType = response.headers.get('content-type');
+
+                if (response.ok && contentType && contentType.includes('application/json')) {
                     const { supabaseUrl, supabaseAnonKey } = await response.json();
                     await initializeSupabase(supabaseUrl, supabaseAnonKey);
                     return;
                 }
-                // API not available; try client fallback
-                console.warn('Env API not available, using client fallback');
+
+                // API not available or returned non-JSON; try client fallback
+                console.warn('Env API not available or returned non-JSON, using client fallback');
                 const f = window.__PUBLIC_ENV__ || {};
                 if (f.supabaseUrl && f.supabaseAnonKey) {
                     await initializeSupabase(f.supabaseUrl, f.supabaseAnonKey);
