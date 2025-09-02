@@ -41,6 +41,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           full_name: null,
           email: user.email,
           avatar_url: null,
+          players: [],
+          teams: [],
           created_at: user.created_at,
           updated_at: user.created_at,
         }
@@ -48,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     } else if (req.method === 'PUT') {
       // Update user profile
-      const { username, fullName, avatarUrl } = req.body;
+      const { username, fullName, avatarUrl, players, teams } = req.body;
 
       const updateData: any = {
         updated_at: new Date().toISOString(),
@@ -57,6 +59,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (username !== undefined) updateData.username = username;
       if (fullName !== undefined) updateData.full_name = fullName;
       if (avatarUrl !== undefined) updateData.avatar_url = avatarUrl;
+      if (players !== undefined) updateData.players = players;
+      if (teams !== undefined) updateData.teams = teams;
 
       const { data: profile, error } = await supabase
         .from('user_profiles')

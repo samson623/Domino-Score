@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   full_name TEXT,
   email TEXT,
   avatar_url TEXT,
+  players JSONB DEFAULT '[]'::jsonb,
+  teams JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

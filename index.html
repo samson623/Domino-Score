@@ -1263,14 +1263,16 @@
                     localStorage.removeItem('dominoGames');
                     localStorage.removeItem('dominoAchievements');
                     localStorage.removeItem('dominoStreaks');
-                    
+
                     players = [];
                     teams = [];
                     games = [];
                     achievements = {};
                     streaks = {};
                     currentGame = null;
-                    
+
+                    savePlayersAndTeams();
+
                     Object.values(chartInstances).forEach(chart => {
                         if (chart) chart.destroy();
                     });
@@ -2671,6 +2673,7 @@
                 const newPlayer = { id: Date.now().toString(), name: playerName };
                 players.push(newPlayer);
                 localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                savePlayersAndTeams();
             }
         }
 
@@ -2686,10 +2689,12 @@
                     if (isPlayerInTeam) {
                         teams = teams.filter(team => team.player1 !== playerToDelete.name && team.player2 !== playerToDelete.name);
                         localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                        savePlayersAndTeams();
                     }
 
                     players = players.filter(p => p.id !== playerId);
                     localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                    savePlayersAndTeams();
                     loadPlayers();
                     if (currentSection === 'teams') loadTeams();
                     showToast(`${playerToDelete.name} has been deleted.`);
@@ -2790,6 +2795,7 @@
                 };
                 teams.push(newTeam);
                 localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                savePlayersAndTeams();
                 return newTeam;
             }
         }
@@ -2801,6 +2807,7 @@
                 () => {
                     teams = teams.filter(t => t.id !== teamId);
                     localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                    savePlayersAndTeams();
                     loadTeams();
                     showToast('Team deleted successfully.');
                 }
@@ -3564,6 +3571,7 @@
                     updateAuthUI();
                     if (currentUser) {
                         loadUserBilling();
+                        syncPlayersAndTeams();
                     }
                 });
 
@@ -3573,6 +3581,7 @@
                 updateAuthUI();
                 if (currentUser) {
                     loadUserBilling();
+                    syncPlayersAndTeams();
                 }
             } catch (e) {
                 console.error('Failed to set up Supabase:', e);
@@ -3683,6 +3692,51 @@
                 updateBillingUI();
             } catch (error) {
                 console.error('Failed to load billing:', error);
+            }
+        }
+
+        // Sync players and teams with Supabase
+        async function syncPlayersAndTeams() {
+            if (!supabase || !currentUser) return;
+            try {
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .select('players, teams')
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error('Error loading profile data:', error);
+                    return;
+                }
+
+                if (data?.players || data?.teams) {
+                    players = data.players || [];
+                    teams = data.teams || [];
+                    localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                    localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                    refreshAllData();
+                } else if (players.length || teams.length) {
+                    await savePlayersAndTeams();
+                }
+            } catch (e) {
+                console.error('Failed to sync players/teams:', e);
+            }
+        }
+
+        async function savePlayersAndTeams() {
+            if (!supabase || !currentUser) return;
+            try {
+                await supabase
+                    .from('user_profiles')
+                    .upsert({
+                        user_id: currentUser.id,
+                        players,
+                        teams,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id' });
+            } catch (e) {
+                console.error('Failed to save players/teams:', e);
             }
         }
 
