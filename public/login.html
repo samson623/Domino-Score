@@ -82,7 +82,7 @@
           errEl.textContent = '';
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${location.origin}/index.html` }
+            options: { redirectTo: `${location.origin}/` }
           });
           if (error) errEl.textContent = error.message;
         };
@@ -93,7 +93,7 @@
           const password = document.getElementById('password').value;
           const { error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) { errEl.textContent = error.message; return; }
-          const target = (location.protocol === 'file:') ? '../index.html' : '/index.html';
+          const target = (location.protocol === 'file:') ? '../index.html' : '/';
           window.location.href = target;
         };
 
