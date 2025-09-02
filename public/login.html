@@ -15,8 +15,10 @@
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; background:#0b1220; color:#fff; }
     .card { background:#101827; padding:24px; border-radius:16px; width:100%; max-width:380px; box-shadow:0 10px 30px rgba(0,0,0,.4) }
     h1 { font-size:20px; margin:0 0 12px }
+    input { width:100%; padding:12px 16px; border-radius:10px; border:1px solid #374151; background:#0f172a; color:#fff; margin:8px 0; }
     button { width:100%; padding:12px 16px; border-radius:10px; border:0; cursor:pointer; font-weight:600; }
     .google { background:#fff; color:#111827; }
+    .email { background:#2563eb; color:#fff; margin-top:4px; }
     .muted { color:#94a3b8; font-size:12px; margin-top:10px; text-align:center }
     .err { color:#fca5a5; margin-top:12px; min-height:20px }
   </style>
@@ -25,7 +27,11 @@
   <div class="card">
     <h1>Sign in to Domino Score</h1>
     <button class="google" id="googleBtn">Continue with Google</button>
-    <div class="muted">You’ll be redirected back to the app after login.</div>
+    <div style="margin:16px 0; text-align:center">or</div>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button class="email" id="emailBtn">Sign in with Email</button>
+    <div class="muted">Don't have an account? <a href="signup.html">Sign up</a></div>
     <div class="err" id="err"></div>
   </div>
 
@@ -33,7 +39,10 @@
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const errEl = document.getElementById('err');
-    const btn = document.getElementById('googleBtn');
+    const googleBtn = document.getElementById('googleBtn');
+    const emailBtn = document.getElementById('emailBtn');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
 
     async function getEnv() {
       try {
@@ -52,13 +61,27 @@
         const { supabaseUrl, supabaseAnonKey } = await getEnv();
         const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
 
-        btn.onclick = async () => {
+        googleBtn.onclick = async () => {
           errEl.textContent = '';
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: { redirectTo: `${location.origin}/index.html` }
           });
           if (error) errEl.textContent = error.message;
+        };
+
+        emailBtn.onclick = async () => {
+          errEl.textContent = '';
+          const { error } = await supabase.auth.signInWithPassword({
+            email: emailInput.value,
+            password: passwordInput.value
+          });
+          if (error) {
+            errEl.textContent = error.message;
+          } else {
+            const redirect = (location.protocol === 'file:') ? '../index.html' : '/index.html';
+            window.location.href = redirect;
+          }
         };
       } catch (e) {
         errEl.textContent = (e && e.message) ? e.message : 'Failed to initialize auth.';
