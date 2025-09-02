@@ -36,12 +36,12 @@
     const btn = document.getElementById('googleBtn');
 
     async function getEnv() {
-      try {
-        const r = await fetch('/api/public-env');
-        if (r.ok) return r.json();
-      } catch (e) {
-        // ignore and try fallback
-      }
+        try {
+          const r = await fetch('/api/public-env');
+          if (r.ok) return await r.json();
+        } catch (e) {
+          // ignore and try fallback
+        }
       const f = window.__PUBLIC_ENV__ || {};
       if (f.supabaseUrl && f.supabaseAnonKey) return f;
       throw new Error('Env not available');
