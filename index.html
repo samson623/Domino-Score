@@ -268,7 +268,7 @@
                 </button>
                 <!-- Authentication Button -->
                 <div id="authSection">
-                    <button id="signInBtn" onclick="handleSignIn()" class="hidden px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
+                    <button id="signInBtn" type="button" onclick="handleSignIn()" class="hidden px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-sm font-medium">
                         <i class="fas fa-sign-in-alt mr-1"></i>Sign In
                     </button>
                     <div id="userMenu" class="hidden relative">
@@ -3634,7 +3634,7 @@
         // Handle sign in
         function handleSignIn() {
             // Redirect to login page
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         }
 
         // Handle sign out
