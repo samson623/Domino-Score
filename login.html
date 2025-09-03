@@ -218,19 +218,39 @@
         async function initSupabase() {
             try {
                 const response = await fetch('/api/public-env');
-                if (response.ok) {
+                const contentType = response.headers.get('content-type');
+
+                if (response.ok && contentType && contentType.includes('application/json')) {
                     const { supabaseUrl, supabaseAnonKey } = await response.json();
-                    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+                    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true
+                        }
+                    });
+                    return;
                 } else {
-                    // Fallback to client-side config
-                    const config = window.__PUBLIC_ENV__ || {
-                        supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
-                        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
-                    };
-                    supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                    console.warn('Env API not available or returned non-JSON, using client fallback');
                 }
             } catch (error) {
-                console.error('Failed to initialize Supabase:', error);
+                console.warn('Env API fetch failed, using client fallback');
+            }
+
+            // Fallback to client-side configuration
+            const config = window.__PUBLIC_ENV__ || {
+                supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
+                supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
+            };
+
+            if (config.supabaseUrl && config.supabaseAnonKey) {
+                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: true
+                    }
+                });
+            } else {
+                console.error('Failed to initialize Supabase: missing configuration');
                 showToast('Failed to initialize authentication', 'error');
             }
         }
