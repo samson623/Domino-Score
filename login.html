@@ -223,11 +223,7 @@
                     supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
                 } else {
                     // Fallback to client-side config
-                    const config = window.__PUBLIC_ENV__ || {
-                        supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
-                        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
-                    };
-                    supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                    throw new Error('Could not load Supabase configuration.');
                 }
             } catch (error) {
                 console.error('Failed to initialize Supabase:', error);
