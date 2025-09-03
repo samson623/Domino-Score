@@ -2766,11 +2766,14 @@
 
             addPlayerIfNotExists(player1Name);
             addPlayerIfNotExists(player2Name);
-            
+
             findOrCreateTeam(player1Name, player2Name);
-            
+
             hideCreateTeam();
             loadTeams();
+            // Ensure player lists and selection dropdowns reflect new team members
+            loadPlayers();
+            populateSelectionDropdowns();
         }
 
         function findOrCreateTeam(player1Name, player2Name) {
