@@ -17,5 +17,5 @@
     "stripe": "^18.4.0"
   },
   "description": "",
-  "type": "commonjs"
+  "type": "module"
 }
