@@ -2766,9 +2766,12 @@
 
             addPlayerIfNotExists(player1Name);
             addPlayerIfNotExists(player2Name);
-            
+
             findOrCreateTeam(player1Name, player2Name);
-            
+
+            // Ensure players list reflects any new additions
+            loadPlayers();
+
             hideCreateTeam();
             loadTeams();
         }
