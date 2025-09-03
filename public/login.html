@@ -91,10 +91,21 @@
           errEl.textContent = '';
           const email = document.getElementById('email').value.trim();
           const password = document.getElementById('password').value;
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) { errEl.textContent = error.message; return; }
-          const target = (location.protocol === 'file:') ? '../index.html' : '/index.html';
-          window.location.href = target;
+          try {
+            const r = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password })
+            });
+            const data = await r.json();
+            if (!r.ok) { errEl.textContent = data.error || 'Login failed'; return; }
+            const { error } = await supabase.auth.setSession(data.session);
+            if (error) { errEl.textContent = error.message; return; }
+            const target = (location.protocol === 'file:') ? '../index.html' : '/index.html';
+            window.location.href = target;
+          } catch (e) {
+            errEl.textContent = 'Login failed';
+          }
         };
 
         emailSignupBtn.onclick = async () => {
