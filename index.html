@@ -3633,10 +3633,8 @@
 
         // Handle sign in
         function handleSignIn() {
-            // If served via Vercel/static hosting, public/ maps to root
-            // When opening the file locally (file://), fall back to public/login.html
-            const target = (location.protocol === 'file:') ? 'public/login.html' : '/login.html';
-            window.location.href = target;
+            // Redirect to login page
+            window.location.href = '/login.html';
         }
 
         // Handle sign out

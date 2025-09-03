@@ -7,8 +7,8 @@
   "routes": [
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/login", "dest": "/public/login.html" },
-    { "src": "/login.html", "dest": "/public/login.html" },
+    { "src": "/login", "dest": "/login.html" },
+    { "src": "/signup", "dest": "/signup.html" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
