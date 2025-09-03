@@ -14,7 +14,8 @@
     "common-tags": "^1.8.2",
     "dotenv": "^16.3.1",
     "micro": "^10.0.1",
-    "stripe": "^18.4.0"
+    "stripe": "^18.4.0",
+    "vercel": "^47.0.2"
   },
   "description": "",
   "type": "commonjs"

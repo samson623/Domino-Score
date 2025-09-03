@@ -17,52 +17,114 @@
             border-radius: 15px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="domino-bg min-h-screen flex items-center justify-center p-4">
     <div class="domino-card w-full max-w-md p-8">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">
-                <i class="fas fa-dice-d6 text-purple-600 mr-2"></i>
-                Domino Score
-            </h1>
-            <p class="text-gray-600">Sign in to your account</p>
-        </div>
-
-        <form id="loginForm" class="space-y-6">
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                </label>
-                <input type="email" id="email" name="email" required
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
-                    placeholder="Enter your email">
+        <!-- Sign In View -->
+        <div id="signInView">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-dice-d6 text-purple-600 mr-2"></i>
+                    Domino Score
+                </h1>
+                <p class="text-gray-600">Sign in to your account</p>
             </div>
 
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-                    Password
-                </label>
-                <input type="password" id="password" name="password" required
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
-                    placeholder="Enter your password">
-            </div>
-
-            <button type="submit" id="loginBtn"
-                class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 font-medium">
-                <i class="fas fa-sign-in-alt mr-2"></i>
-                Sign In
+            <button id="googleBtn"
+                class="w-full bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-200 font-medium mb-4">
+                <i class="fab fa-google mr-2"></i>
+                Continue with Google
             </button>
-        </form>
 
-        <div class="mt-6 text-center">
-            <p class="text-gray-600">
-                Don't have an account?
-                <a href="/signup.html" class="text-purple-600 hover:text-purple-700 font-medium">
-                    Sign up here
-                </a>
-            </p>
+            <div class="text-center text-gray-500 my-4">or use email</div>
+
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address
+                    </label>
+                    <input type="email" id="email" name="email" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+                        placeholder="Enter your email">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Password
+                    </label>
+                    <input type="password" id="password" name="password" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+                        placeholder="Enter your password">
+                </div>
+
+                <button type="submit" id="loginBtn"
+                    class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 font-medium">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Sign In
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">
+                    Don't have an account?
+                    <a href="#" id="toSignUp" class="text-purple-600 hover:text-purple-700 font-medium">
+                        Sign up here
+                    </a>
+                </p>
+            </div>
         </div>
+
+        <!-- Sign Up View -->
+        <div id="signUpView" class="hidden">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-user-plus text-purple-600 mr-2"></i>
+                    Create an Account
+                </h1>
+                <p class="text-gray-600">Join Domino Score today</p>
+            </div>
+
+            <form id="signUpForm" class="space-y-6">
+                <div>
+                    <label for="signupEmail" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address
+                    </label>
+                    <input type="email" id="signupEmail" name="email" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+                        placeholder="Enter your email">
+                </div>
+
+                <div>
+                    <label for="signupPassword" class="block text-sm font-medium text-gray-700 mb-2">
+                        Password
+                    </label>
+                    <input type="password" id="signupPassword" name="password" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition duration-200"
+                        placeholder="Choose a password">
+                </div>
+
+                <button type="submit" id="signUpBtn"
+                    class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 font-medium">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Sign Up
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">
+                    Already have an account?
+                    <a href="#" id="toSignIn" class="text-purple-600 hover:text-purple-700 font-medium">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+        </div>
+
 
         <div class="mt-4 text-center">
             <a href="/" class="text-gray-500 hover:text-gray-700 text-sm">
@@ -80,24 +142,49 @@
     <script>
         let supabase = null;
 
+        const signInView = document.getElementById('signInView');
+        const signUpView = document.getElementById('signUpView');
+        const toSignUp = document.getElementById('toSignUp');
+        const toSignIn = document.getElementById('toSignIn');
+        const googleBtn = document.getElementById('googleBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signUpForm = document.getElementById('signUpForm');
+
+        toSignUp.addEventListener('click', (e) => {
+            e.preventDefault();
+            signInView.classList.add('hidden');
+            signUpView.classList.remove('hidden');
+        });
+
+        toSignIn.addEventListener('click', (e) => {
+            e.preventDefault();
+            signUpView.classList.add('hidden');
+            signInView.classList.remove('hidden');
+        });
+
         // Initialize Supabase
         async function initSupabase() {
             try {
                 const response = await fetch('/api/public-env');
                 if (response.ok) {
                     const { supabaseUrl, supabaseAnonKey } = await response.json();
+                    if (!supabaseUrl || !supabaseAnonKey) {
+                        throw new Error('Supabase URL or Anon Key is missing from API response.');
+                    }
                     supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
                 } else {
-                    // Fallback to client-side config
-                    const config = window.__PUBLIC_ENV__ || {
-                        supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
-                        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
-                    };
-                    supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+                    throw new Error(errorData.error || `Server responded with ${response.status}`);
                 }
             } catch (error) {
                 console.error('Failed to initialize Supabase:', error);
-                showToast('Failed to initialize authentication');
+                showToast('Auth system not configured. Please contact support.', 'error');
+                // Disable all forms if supabase is not initialized
+                googleBtn.disabled = true;
+                googleBtn.style.opacity = 0.5;
+                googleBtn.style.cursor = 'not-allowed';
+                document.getElementById('loginBtn').disabled = true;
+                document.getElementById('signUpBtn').disabled = true;
             }
         }
 
@@ -118,8 +205,23 @@
             }, 3000);
         }
 
-        // Handle form submission
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        // Google login
+        googleBtn.addEventListener('click', async () => {
+            if (!supabase) {
+                showToast('Authentication not initialized');
+                return;
+            }
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: `${location.origin}/index.html` }
+            });
+            if (error) {
+                showToast(error.message);
+            }
+        });
+
+        // Email login
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             if (!supabase) {
@@ -161,6 +263,45 @@
                 loginBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Sign In';
             }
         });
+
+        // Email sign up
+        signUpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const signUpBtn = document.getElementById('signUpBtn');
+
+            signUpBtn.disabled = true;
+            signUpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Signing Up...';
+
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Sign up failed');
+                }
+
+                showToast(data.message || 'Check your email to confirm your account', 'success');
+                // Switch back to sign in view
+                signUpView.classList.add('hidden');
+                signInView.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Sign up error:', error);
+                showToast(error.message || 'Failed to sign up');
+            } finally {
+                signUpBtn.disabled = false;
+                signUpBtn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Sign Up';
+            }
+        });
+
 
         // Initialize on page load
         initSupabase();
