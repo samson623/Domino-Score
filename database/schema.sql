@@ -67,6 +67,8 @@ ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE games ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leaderboard ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_players ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for user_profiles
 CREATE POLICY "Users can view their own profile" ON user_profiles
@@ -95,6 +97,22 @@ CREATE POLICY "Users can view their own game sessions" ON game_sessions
 CREATE POLICY "Users can manage their own game sessions" ON game_sessions
   FOR ALL USING (auth.uid() = user_id);
 
+-- Teams Table
+CREATE TABLE IF NOT EXISTS teams (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Team Players Table
+CREATE TABLE IF NOT EXISTS team_players (
+  team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member', -- e.g., 'admin', 'member'
+  PRIMARY KEY (team_id, user_id)
+);
+
 -- RLS Policies for leaderboard
 CREATE POLICY "Users can view all leaderboard entries" ON leaderboard
   FOR SELECT USING (true);
@@ -104,6 +122,39 @@ CREATE POLICY "Users can update their own leaderboard entries" ON leaderboard
 
 CREATE POLICY "Users can insert their own leaderboard entries" ON leaderboard
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- RLS Policies for teams
+CREATE POLICY "Authenticated users can create teams" ON teams
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Team members can view their team" ON teams
+  FOR SELECT USING (
+    id IN (
+      SELECT team_id FROM team_players WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Team admins can update their team" ON teams
+  FOR UPDATE USING (
+    id IN (
+      SELECT team_id FROM team_players WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- RLS Policies for team_players
+CREATE POLICY "Team members can view team players" ON team_players
+  FOR SELECT USING (
+    team_id IN (
+      SELECT team_id FROM team_players WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Team admins can manage team players" ON team_players
+  FOR ALL USING (
+    team_id IN (
+      SELECT team_id FROM team_players WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- Functions for leaderboard updates
 CREATE OR REPLACE FUNCTION update_leaderboard_stats()

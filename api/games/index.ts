@@ -47,26 +47,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     } else if (req.method === 'POST') {
       // Create a new game
-      const { gameType, players, initialData } = req.body;
+      const { gameType, teamId, initialData } = req.body;
 
-      if (!gameType) {
-        return res.status(400).json({ error: 'Game type is required' });
+      if (!gameType || !teamId) {
+        return res.status(400).json({ error: 'Game type and team ID are required' });
       }
 
-      const { data: game, error } = await supabase
+      // 1. Fetch players from the team
+      const { data: teamPlayers, error: teamPlayersError } = await supabase
+        .from('team_players')
+        .select('user_id')
+        .eq('team_id', teamId);
+
+      if (teamPlayersError) {
+        return res.status(500).json({ error: teamPlayersError.message });
+      }
+
+      if (!teamPlayers || teamPlayers.length === 0) {
+        return res.status(400).json({ error: 'No players found in the team' });
+      }
+
+      const playerIds = teamPlayers.map(p => p.user_id);
+
+      // 2. Fetch user profiles for the players
+      const { data: profiles, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('user_id, username, avatar_url')
+        .in('user_id', playerIds);
+
+      if (profilesError) {
+        return res.status(500).json({ error: profilesError.message });
+      }
+
+      // 3. Construct the players array for the game
+      const players = profiles.map(p => ({
+        id: p.user_id,
+        name: p.username,
+        avatar_url: p.avatar_url,
+      }));
+
+      // 4. Create the game
+      const { data: game, error: gameError } = await supabase
         .from('games')
         .insert({
           user_id: user.id,
           game_type: gameType,
-          players: players || [],
+          players: players,
           scores: initialData || {},
           completed: false,
         })
         .select()
         .single();
 
-      if (error) {
-        return res.status(500).json({ error: error.message });
+      if (gameError) {
+        return res.status(500).json({ error: gameError.message });
       }
 
       return res.status(201).json({ game });
