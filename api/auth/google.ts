@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo || `${req.headers.origin || 'http://localhost:8000'}/`,
+          redirectTo: redirectTo || `${req.headers.origin || 'https://domino-score.vercel.app'}/`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
