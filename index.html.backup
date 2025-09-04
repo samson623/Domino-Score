@@ -257,20 +257,6 @@
                 <h1 class="text-xl font-bold">Domino Score</h1>
             </div>
             <div class="flex items-center space-x-4">
-                <!-- Authentication Button -->
-                <button id="signInBtn" onclick="handleSignIn()" class="hidden px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition text-white">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Sign In
-                </button>
-                
-                <!-- User Menu (when logged in) -->
-                <div id="userMenu" class="hidden flex items-center space-x-2">
-                    <img id="userAvatar" src="" alt="Avatar" class="w-8 h-8 rounded-full">
-                    <span id="userName" class="text-white"></span>
-                    <button onclick="handleSignOut()" class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30 transition" title="Sign Out">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-                
                 <button onclick="showExportModal()" class="p-2 rounded-lg bg-green-600 hover:bg-green-700 transition" title="Export Data">
                     <i class="fas fa-download"></i>
                 </button>
@@ -3396,110 +3382,12 @@
 
 
         // Initialize app
-        // Function to save all data to localStorage with backup
-        function saveAllData() {
-            try {
-                savePlayersData();
-                saveTeamsData();
-                saveGamesData();
-                saveAchievementsData();
-                saveStreaksData();
-                console.log('All data saved successfully with backups');
-            } catch (error) {
-                console.error('Error saving data:', error);
-                // Try to at least save critical data
-                try {
-                    localStorage.setItem('dominoPlayers_emergency', JSON.stringify(players));
-                    localStorage.setItem('dominoTeams_emergency', JSON.stringify(teams));
-                    localStorage.setItem('dominoGames_emergency', JSON.stringify(games));
-                    console.warn('Emergency backup created');
-                } catch (emergencyError) {
-                    console.error('Emergency backup failed:', emergencyError);
-                }
-            }
-        }
-
-        function savePlayersData() {
-            if (players && players.length > 0) {
-                const playersData = JSON.stringify(players);
-                localStorage.setItem('dominoPlayers', playersData);
-                localStorage.setItem('dominoPlayers_backup', playersData);
-            }
-        }
-
-        function saveTeamsData() {
-            if (teams && teams.length > 0) {
-                const teamsData = JSON.stringify(teams);
-                localStorage.setItem('dominoTeams', teamsData);
-                localStorage.setItem('dominoTeams_backup', teamsData);
-            }
-        }
-
-        function saveGamesData() {
-            if (games && games.length > 0) {
-                const gamesData = JSON.stringify(games);
-                localStorage.setItem('dominoGames', gamesData);
-                localStorage.setItem('dominoGames_backup', gamesData);
-            }
-        }
-
-        function saveAchievementsData() {
-            if (achievements && Object.keys(achievements).length > 0) {
-                const achievementsData = JSON.stringify(achievements);
-                localStorage.setItem('dominoAchievements', achievementsData);
-                localStorage.setItem('dominoAchievements_backup', achievementsData);
-            }
-        }
-
-        function saveStreaksData() {
-            if (streaks && Object.keys(streaks).length > 0) {
-                const streaksData = JSON.stringify(streaks);
-                localStorage.setItem('dominoStreaks', streaksData);
-                localStorage.setItem('dominoStreaks_backup', streaksData);
-            }
-        }
-
-        // Function to validate data integrity and recover if needed
-        function validateDataIntegrity() {
-            console.log('=== Data Integrity Check ===');
-            console.log('Players:', players.length);
-            console.log('Teams:', teams.length);
-            console.log('Games:', games.length);
-            
-            // Ensure data is saved if it exists in memory
-            if (players.length > 0 && localStorage.getItem('dominoPlayers') === null) {
-                localStorage.setItem('dominoPlayers', JSON.stringify(players));
-                console.warn('Recovered players data to localStorage');
-            }
-            if (teams.length > 0 && localStorage.getItem('dominoTeams') === null) {
-                localStorage.setItem('dominoTeams', JSON.stringify(teams));
-                console.warn('Recovered teams data to localStorage');
-            }
-            if (games.length > 0 && localStorage.getItem('dominoGames') === null) {
-                localStorage.setItem('dominoGames', JSON.stringify(games));
-                console.warn('Recovered games data to localStorage');
-            }
-        }
-
         function initApp() {
-            // Validate and recover data if needed
-            validateDataIntegrity();
-            
             initTheme();
             initAudio(); // Initialize the audio context
             showSection('home');
             setupSpeechRecognition();
             document.getElementById('comparison-period-selector').addEventListener('change', runOpponentComparison);
-            
-            // Initialize authentication if available
-            if (typeof initAuth === 'function') {
-                initAuth().catch(err => {
-                    console.warn('Authentication initialization failed:', err);
-                });
-            }
-            
-            // Save data periodically as backup
-            setInterval(saveAllData, 30000); // Auto-save every 30 seconds
         }
 
         // Manual function to recalculate achievements (can be called from console)
@@ -3630,38 +3518,6 @@
         // Debug button functionality removed
 
         // Start the app
-        // Save data before page unload
-        window.addEventListener('beforeunload', function(e) {
-            saveAllData();
-        });
-        
-        // Save data when page becomes hidden (mobile browsers)
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                saveAllData();
-            }
-        });
-        
-        // Save data on any storage event from other tabs
-        window.addEventListener('storage', function(e) {
-            if (e.key && e.key.startsWith('domino')) {
-                console.log('Storage changed in another tab:', e.key);
-                // Reload data from storage to stay in sync
-                if (e.key === 'dominoPlayers') {
-                    players = loadDataFromStorage('dominoPlayers', []);
-                    if (currentSection === 'players') loadPlayers();
-                }
-                if (e.key === 'dominoTeams') {
-                    teams = loadDataFromStorage('dominoTeams', []);
-                    if (currentSection === 'teams') loadTeams();
-                }
-                if (e.key === 'dominoGames') {
-                    games = loadDataFromStorage('dominoGames', []);
-                    refreshAllData();
-                }
-            }
-        });
-        
         initApp();
         
         // Auto-fix achievements and streaks on startup
