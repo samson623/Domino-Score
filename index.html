@@ -313,6 +313,14 @@
         </div>
     </nav>
 
+    <!-- Data Persistence Warning Banner -->
+    <div id="persistenceWarning" class="hidden container mx-auto p-4 -mb-4">
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg shadow-md" role="alert">
+            <p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Data Storage Notice</p>
+            <p>You are not signed in. Your data is stored locally and could be lost. <a href="/login.html" class="font-bold underline hover:text-yellow-800">Sign in or create an account</a> to save your data permanently.</p>
+        </div>
+    </div>
+
     <!-- Mobile Navigation -->
     <div class="md:hidden bg-white dark:bg-gray-800 border-t dark:border-gray-700 fixed bottom-0 left-0 right-0 z-50">
         <div class="flex justify-around py-2">
@@ -680,32 +688,9 @@
         <!-- Teams Section -->
         <div id="teamsSection" class="section hidden">
             <div class="mb-6">
-                <button onclick="showCreateTeam()" class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-medium">
+                <button onclick="createTeamWithDefaultPlayers()" class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-medium">
                     <i class="fas fa-plus mr-2"></i>Create New Team
                 </button>
-            </div>
-
-            <!-- Create Team Form -->
-            <div id="createTeamForm" class="domino-card p-6 mb-6 hidden">
-                <h3 class="text-xl font-bold mb-4">Create New Team</h3>
-                <div class="grid grid-cols-1 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Player 1 Name</label>
-                        <input type="text" id="teamPlayer1Input" class="w-full p-3 border rounded-lg" placeholder="Enter player 1 name">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Player 2 Name</label>
-                        <input type="text" id="teamPlayer2Input" class="w-full p-3 border rounded-lg" placeholder="Enter player 2 name">
-                    </div>
-                </div>
-                <div class="flex space-x-4 mt-6">
-                    <button onclick="createTeam()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-medium">
-                        <i class="fas fa-save mr-2"></i>Create Team
-                    </button>
-                    <button onclick="hideCreateTeam()" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-6 rounded-lg font-medium">
-                        <i class="fas fa-times mr-2"></i>Cancel
-                    </button>
-                </div>
             </div>
 
             <!-- Teams List -->
@@ -2740,37 +2725,17 @@
             document.getElementById('teamsList').innerHTML = teamsHtml || '<div class="col-span-full text-center text-gray-500 dark:text-gray-400">No teams created yet</div>';
         }
 
-        function showCreateTeam() {
-            document.getElementById('createTeamForm').classList.remove('hidden');
-        }
-
-        function hideCreateTeam() {
-            document.getElementById('createTeamForm').classList.add('hidden');
-            document.getElementById('teamPlayer1Input').value = '';
-            document.getElementById('teamPlayer2Input').value = '';
-        }
-
-        function createTeam() {
-            const player1Name = document.getElementById('teamPlayer1Input').value.trim();
-            const player2Name = document.getElementById('teamPlayer2Input').value.trim();
-            
-            if (!player1Name || !player2Name) {
-                showToast('Please enter both player names');
-                return;
-            }
-
-            if (player1Name.toLowerCase() === player2Name.toLowerCase()) {
-                showToast('Please enter two different player names');
-                return;
-            }
+        function createTeamWithDefaultPlayers() {
+            const player1Name = `Player ${players.length + 1}`;
+            const player2Name = `Player ${players.length + 2}`;
 
             addPlayerIfNotExists(player1Name);
             addPlayerIfNotExists(player2Name);
             
             findOrCreateTeam(player1Name, player2Name);
             
-            hideCreateTeam();
             loadTeams();
+            showToast('New team with default players created!');
         }
 
         function findOrCreateTeam(player1Name, player2Name) {
@@ -3627,15 +3592,18 @@
             const userMenu = document.getElementById('userMenu');
             const userName = document.getElementById('userName');
             const userAvatar = document.getElementById('userAvatar');
+            const persistenceWarning = document.getElementById('persistenceWarning');
 
             if (currentUser) {
                 signInBtn.classList.add('hidden');
                 userMenu.classList.remove('hidden');
                 userName.textContent = currentUser.user_metadata?.name || currentUser.email;
                 userAvatar.src = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.email)}&background=3B82F6&color=fff`;
+                if (persistenceWarning) persistenceWarning.classList.add('hidden');
             } else {
                 signInBtn.classList.remove('hidden');
                 userMenu.classList.add('hidden');
+                if (persistenceWarning) persistenceWarning.classList.remove('hidden');
             }
         }
 
