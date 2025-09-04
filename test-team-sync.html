@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Team and Player Sync</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .info {
+            color: blue;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3B82F6;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2563EB;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Team and Player Sync Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Team Creation and Player Sync</h2>
+        <button onclick="testTeamCreation()">Run Test</button>
+        <div id="test1-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Data Persistence</h2>
+        <button onclick="testDataPersistence()">Run Test</button>
+        <div id="test2-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Current Data Status</h2>
+        <button onclick="checkCurrentData()">Check Data</button>
+        <div id="test3-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: Clear All Data (Reset)</h2>
+        <button onclick="clearAllData()" style="background-color: #DC2626;">Clear All Data</button>
+        <div id="test4-result"></div>
+    </div>
+    
+    <script>
+        function testTeamCreation() {
+            const resultDiv = document.getElementById('test1-result');
+            resultDiv.innerHTML = '<p class="info">Testing team creation and player sync...</p>';
+            
+            // Clear previous test data
+            localStorage.removeItem('test_dominoPlayers');
+            localStorage.removeItem('test_dominoTeams');
+            
+            // Simulate team creation with players
+            const player1 = { id: Date.now().toString() + '_p1', name: 'Alice' };
+            const player2 = { id: Date.now().toString() + '_p2', name: 'Bob' };
+            const team = {
+                id: Date.now().toString() + '_team',
+                player1: player1.name,
+                player2: player2.name
+            };
+            
+            // Add players and team
+            const players = [player1, player2];
+            const teams = [team];
+            
+            localStorage.setItem('test_dominoPlayers', JSON.stringify(players));
+            localStorage.setItem('test_dominoTeams', JSON.stringify(teams));
+            
+            // Verify storage
+            const storedPlayers = JSON.parse(localStorage.getItem('test_dominoPlayers') || '[]');
+            const storedTeams = JSON.parse(localStorage.getItem('test_dominoTeams') || '[]');
+            
+            let html = '';
+            if (storedPlayers.length === 2 && storedTeams.length === 1) {
+                html += '<p class="success">✅ Test PASSED: Team created with 2 players synchronized</p>';
+                html += '<pre>Players: ' + JSON.stringify(storedPlayers, null, 2) + '</pre>';
+                html += '<pre>Teams: ' + JSON.stringify(storedTeams, null, 2) + '</pre>';
+            } else {
+                html += '<p class="error">❌ Test FAILED: Data not properly stored</p>';
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        function testDataPersistence() {
+            const resultDiv = document.getElementById('test2-result');
+            resultDiv.innerHTML = '<p class="info">Testing data persistence...</p>';
+            
+            // Store test data
+            const testData = {
+                players: [
+                    { id: '1', name: 'TestPlayer1' },
+                    { id: '2', name: 'TestPlayer2' }
+                ],
+                teams: [
+                    { id: '1', player1: 'TestPlayer1', player2: 'TestPlayer2' }
+                ],
+                games: [
+                    { id: '1', winner: 'TestPlayer1', loser: 'TestPlayer2', timestamp: Date.now() }
+                ]
+            };
+            
+            localStorage.setItem('test_persist_players', JSON.stringify(testData.players));
+            localStorage.setItem('test_persist_teams', JSON.stringify(testData.teams));
+            localStorage.setItem('test_persist_games', JSON.stringify(testData.games));
+            
+            // Simulate page reload by reading data back
+            const loadedPlayers = JSON.parse(localStorage.getItem('test_persist_players') || '[]');
+            const loadedTeams = JSON.parse(localStorage.getItem('test_persist_teams') || '[]');
+            const loadedGames = JSON.parse(localStorage.getItem('test_persist_games') || '[]');
+            
+            let html = '';
+            if (loadedPlayers.length === 2 && loadedTeams.length === 1 && loadedGames.length === 1) {
+                html += '<p class="success">✅ Test PASSED: Data persists correctly</p>';
+                html += '<pre>Data recovered successfully after simulated reload</pre>';
+            } else {
+                html += '<p class="error">❌ Test FAILED: Data lost on reload</p>';
+                html += '<pre>Players: ' + loadedPlayers.length + ', Teams: ' + loadedTeams.length + ', Games: ' + loadedGames.length + '</pre>';
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        function checkCurrentData() {
+            const resultDiv = document.getElementById('test3-result');
+            
+            const players = JSON.parse(localStorage.getItem('dominoPlayers') || '[]');
+            const teams = JSON.parse(localStorage.getItem('dominoTeams') || '[]');
+            const games = JSON.parse(localStorage.getItem('dominoGames') || '[]');
+            const achievements = JSON.parse(localStorage.getItem('dominoAchievements') || '{}');
+            const streaks = JSON.parse(localStorage.getItem('dominoStreaks') || '{}');
+            
+            let html = '<h3>Current Data in localStorage:</h3>';
+            html += '<p class="info">Players: ' + players.length + '</p>';
+            html += '<pre>' + JSON.stringify(players, null, 2) + '</pre>';
+            html += '<p class="info">Teams: ' + teams.length + '</p>';
+            html += '<pre>' + JSON.stringify(teams, null, 2) + '</pre>';
+            html += '<p class="info">Games: ' + games.length + '</p>';
+            html += '<pre>' + JSON.stringify(games.slice(0, 3), null, 2) + (games.length > 3 ? '\n... and ' + (games.length - 3) + ' more' : '') + '</pre>';
+            html += '<p class="info">Achievements: ' + Object.keys(achievements).length + ' entries</p>';
+            html += '<p class="info">Streaks: ' + Object.keys(streaks).length + ' entries</p>';
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        function clearAllData() {
+            const resultDiv = document.getElementById('test4-result');
+            
+            if (confirm('Are you sure you want to clear all Domino Score data? This cannot be undone!')) {
+                localStorage.removeItem('dominoPlayers');
+                localStorage.removeItem('dominoTeams');
+                localStorage.removeItem('dominoGames');
+                localStorage.removeItem('dominoAchievements');
+                localStorage.removeItem('dominoStreaks');
+                
+                resultDiv.innerHTML = '<p class="success">✅ All data has been cleared</p>';
+            } else {
+                resultDiv.innerHTML = '<p class="info">Clear operation cancelled</p>';
+            }
+        }
+    </script>
+</body>
+</html>

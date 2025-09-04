@@ -1025,9 +1025,40 @@
         // Global variables
         let currentGame = null;
         let currentGameMode = null;
-        let players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
-        let teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
-        let games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+        // Robust data loading with error handling
+        function loadDataFromStorage(key, defaultValue = []) {
+            try {
+                const data = localStorage.getItem(key);
+                if (data === null || data === undefined || data === '') {
+                    console.log(`No data found for ${key}, using default`);
+                    return defaultValue;
+                }
+                const parsed = JSON.parse(data);
+                console.log(`Loaded ${key}: ${Array.isArray(parsed) ? parsed.length : Object.keys(parsed).length} items`);
+                return parsed;
+            } catch (error) {
+                console.error(`Error loading ${key}:`, error);
+                // Try to recover from backup if available
+                try {
+                    const backupData = localStorage.getItem(key + '_backup');
+                    if (backupData) {
+                        const backupParsed = JSON.parse(backupData);
+                        console.warn(`Recovered ${key} from backup`);
+                        // Restore backup to main key
+                        localStorage.setItem(key, backupData);
+                        return backupParsed;
+                    }
+                } catch (backupError) {
+                    console.error(`Backup recovery failed for ${key}:`, backupError);
+                }
+                return defaultValue;
+            }
+        }
+
+        // Load data with persistence validation
+        let players = loadDataFromStorage('dominoPlayers', []);
+        let teams = loadDataFromStorage('dominoTeams', []);
+        let games = loadDataFromStorage('dominoGames', []);
         let currentSection = 'home';
         let chartInstances = {};
         let currentPeriod = 'daily';
@@ -1039,8 +1070,8 @@
         let remainingTime = 0;
         let editingGameId = null;
         
-        let achievements = JSON.parse(localStorage.getItem('dominoAchievements')) || {};
-        let streaks = JSON.parse(localStorage.getItem('dominoStreaks')) || {};
+        let achievements = loadDataFromStorage('dominoAchievements', {});
+        let streaks = loadDataFromStorage('dominoStreaks', {});
         const achievementDefinitions = {
             tenWins: { text: 'Ten Wins Club', icon: '🏅', description: 'Win 10 games' },
             anyPetaroll: { text: 'First PETAROLL', icon: '🔥', description: 'Achieve your first PETAROLL' },
@@ -2668,9 +2699,17 @@
             if (!playerName) return;
             const nameExists = players.some(p => p.name.toLowerCase() === playerName.toLowerCase());
             if (!nameExists) {
-                const newPlayer = { id: Date.now().toString(), name: playerName };
+                // Generate unique ID with timestamp and random component for better uniqueness
+                const newPlayer = { 
+                    id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9), 
+                    name: playerName 
+                };
                 players.push(newPlayer);
+                // Force save to localStorage immediately
                 localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                
+                // Log for debugging
+                console.log('Player added:', newPlayer.name, 'Total players:', players.length);
             }
         }
 
@@ -2771,6 +2810,14 @@
             
             hideCreateTeam();
             loadTeams();
+            
+            // Update Players section if it's visible or refresh the data
+            if (currentSection === 'players') {
+                loadPlayers();
+            }
+            
+            // Show success message
+            showToast(`Team created with ${player1Name} and ${player2Name}. Players added to Players section!`);
         }
 
         function findOrCreateTeam(player1Name, player2Name) {
@@ -3383,11 +3430,83 @@
 
         // Initialize app
         function initApp() {
+            // Validate and recover data if needed
+            validateDataIntegrity();
+            
             initTheme();
             initAudio(); // Initialize the audio context
             showSection('home');
             setupSpeechRecognition();
             document.getElementById('comparison-period-selector').addEventListener('change', runOpponentComparison);
+            
+            // Save data periodically as backup
+            setInterval(saveAllData, 30000); // Auto-save every 30 seconds
+        }
+        
+        // Function to validate data integrity and recover if needed
+        function validateDataIntegrity() {
+            console.log('=== Data Integrity Check ===');
+            console.log('Players:', players.length);
+            console.log('Teams:', teams.length);
+            console.log('Games:', games.length);
+            
+            // Ensure data is saved if it exists in memory
+            if (players.length > 0 && localStorage.getItem('dominoPlayers') === null) {
+                localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                console.warn('Recovered players data to localStorage');
+            }
+            if (teams.length > 0 && localStorage.getItem('dominoTeams') === null) {
+                localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                console.warn('Recovered teams data to localStorage');
+            }
+            if (games.length > 0 && localStorage.getItem('dominoGames') === null) {
+                localStorage.setItem('dominoGames', JSON.stringify(games));
+                console.warn('Recovered games data to localStorage');
+            }
+        }
+        
+        // Function to save all data to localStorage with backup
+        function saveAllData() {
+            try {
+                // Save main data
+                if (players.length > 0) {
+                    const playersData = JSON.stringify(players);
+                    localStorage.setItem('dominoPlayers', playersData);
+                    localStorage.setItem('dominoPlayers_backup', playersData);
+                }
+                if (teams.length > 0) {
+                    const teamsData = JSON.stringify(teams);
+                    localStorage.setItem('dominoTeams', teamsData);
+                    localStorage.setItem('dominoTeams_backup', teamsData);
+                }
+                if (games.length > 0) {
+                    const gamesData = JSON.stringify(games);
+                    localStorage.setItem('dominoGames', gamesData);
+                    localStorage.setItem('dominoGames_backup', gamesData);
+                }
+                if (Object.keys(achievements).length > 0) {
+                    const achievementsData = JSON.stringify(achievements);
+                    localStorage.setItem('dominoAchievements', achievementsData);
+                    localStorage.setItem('dominoAchievements_backup', achievementsData);
+                }
+                if (Object.keys(streaks).length > 0) {
+                    const streaksData = JSON.stringify(streaks);
+                    localStorage.setItem('dominoStreaks', streaksData);
+                    localStorage.setItem('dominoStreaks_backup', streaksData);
+                }
+                console.log('Data saved successfully with backups');
+            } catch (error) {
+                console.error('Error saving data:', error);
+                // Try to at least save critical data
+                try {
+                    localStorage.setItem('dominoPlayers_emergency', JSON.stringify(players));
+                    localStorage.setItem('dominoTeams_emergency', JSON.stringify(teams));
+                    localStorage.setItem('dominoGames_emergency', JSON.stringify(games));
+                    console.warn('Emergency backup created');
+                } catch (emergencyError) {
+                    console.error('Emergency backup failed:', emergencyError);
+                }
+            }
         }
 
         // Manual function to recalculate achievements (can be called from console)
@@ -3518,6 +3637,18 @@
         // Debug button functionality removed
 
         // Start the app
+        // Save data before page unload
+        window.addEventListener('beforeunload', function(e) {
+            saveAllData();
+        });
+        
+        // Save data when page becomes hidden (mobile browsers)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveAllData();
+            }
+        });
+        
         initApp();
         
         // Auto-fix achievements and streaks on startup
