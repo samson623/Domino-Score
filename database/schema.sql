@@ -149,6 +149,295 @@ CREATE INDEX IF NOT EXISTS idx_game_sessions_user_id ON game_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_leaderboard_game_type ON leaderboard(game_type);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_username ON user_profiles(username);
 
+-- Teams Table
+CREATE TABLE IF NOT EXISTS teams (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  avatar_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  max_members INTEGER DEFAULT 10,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Team Memberships Table
+CREATE TABLE IF NOT EXISTS team_memberships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id UUID REFERENCES teams(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role TEXT DEFAULT 'member' CHECK (role IN ('owner', 'admin', 'member')),
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  is_active BOOLEAN DEFAULT true,
+  UNIQUE(team_id, user_id)
+);
+
+-- Team Games Table (for team-based games)
+CREATE TABLE IF NOT EXISTS team_games (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id UUID REFERENCES teams(id) ON DELETE CASCADE NOT NULL,
+  game_id UUID REFERENCES games(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(team_id, game_id)
+);
+
+-- Enable Row Level Security for team tables
+ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_memberships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_games ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for teams
+CREATE POLICY "Users can view teams they are members of" ON teams
+  FOR SELECT USING (
+    id IN (
+      SELECT team_id FROM team_memberships 
+      WHERE user_id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "Team owners can update their teams" ON teams
+  FOR UPDATE USING (auth.uid() = owner_id);
+
+CREATE POLICY "Users can create teams" ON teams
+  FOR INSERT WITH CHECK (auth.uid() = owner_id);
+
+CREATE POLICY "Team owners can delete their teams" ON teams
+  FOR DELETE USING (auth.uid() = owner_id);
+
+-- RLS Policies for team_memberships
+CREATE POLICY "Users can view memberships of their teams" ON team_memberships
+  FOR SELECT USING (
+    team_id IN (
+      SELECT team_id FROM team_memberships 
+      WHERE user_id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "Team owners and admins can manage memberships" ON team_memberships
+  FOR ALL USING (
+    team_id IN (
+      SELECT team_id FROM team_memberships 
+      WHERE user_id = auth.uid() 
+      AND role IN ('owner', 'admin') 
+      AND is_active = true
+    )
+  );
+
+-- RLS Policies for team_games
+CREATE POLICY "Users can view team games of their teams" ON team_games
+  FOR SELECT USING (
+    team_id IN (
+      SELECT team_id FROM team_memberships 
+      WHERE user_id = auth.uid() AND is_active = true
+    )
+  );
+
+CREATE POLICY "Team members can create team games" ON team_games
+  FOR INSERT WITH CHECK (
+    team_id IN (
+      SELECT team_id FROM team_memberships 
+      WHERE user_id = auth.uid() AND is_active = true
+    )
+  );
+
+-- Indexes for team tables
+CREATE INDEX IF NOT EXISTS idx_teams_owner_id ON teams(owner_id);
+CREATE INDEX IF NOT EXISTS idx_teams_is_active ON teams(is_active);
+CREATE INDEX IF NOT EXISTS idx_team_memberships_team_id ON team_memberships(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_memberships_user_id ON team_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_memberships_active ON team_memberships(is_active);
+CREATE INDEX IF NOT EXISTS idx_team_games_team_id ON team_games(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_games_game_id ON team_games(game_id);
+
+-- Function to automatically add team owner as member
+CREATE OR REPLACE FUNCTION add_team_owner_as_member()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO team_memberships (team_id, user_id, role, is_active)
+  VALUES (NEW.id, NEW.owner_id, 'owner', true)
+  ON CONFLICT (team_id, user_id) DO NOTHING;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to add team owner as member when team is created
+CREATE TRIGGER add_owner_to_team_membership
+  AFTER INSERT ON teams
+  FOR EACH ROW
+  EXECUTE FUNCTION add_team_owner_as_member();
+
+-- Function to synchronize team players with games
+CREATE OR REPLACE FUNCTION sync_team_players_to_games()
+RETURNS TRIGGER AS $$
+DECLARE
+  team_members JSONB;
+  game_record RECORD;
+BEGIN
+  -- Get all active team members with their profile information
+  SELECT jsonb_agg(
+    jsonb_build_object(
+      'id', tm.user_id,
+      'username', up.username,
+      'full_name', up.full_name,
+      'avatar_url', up.avatar_url,
+      'role', tm.role
+    )
+  ) INTO team_members
+  FROM team_memberships tm
+  JOIN user_profiles up ON tm.user_id = up.user_id
+  WHERE tm.team_id = NEW.team_id AND tm.is_active = true;
+
+  -- Update all games associated with this team
+  FOR game_record IN 
+    SELECT g.id 
+    FROM games g
+    JOIN team_games tg ON g.id = tg.game_id
+    WHERE tg.team_id = NEW.team_id
+  LOOP
+    UPDATE games 
+    SET 
+      players = team_members,
+      updated_at = NOW()
+    WHERE id = game_record.id;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to sync team players when membership changes
+CREATE TRIGGER sync_team_players_on_membership_change
+  AFTER INSERT OR UPDATE OR DELETE ON team_memberships
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_team_players_to_games();
+
+-- Function to sync team players when user profile is updated
+CREATE OR REPLACE FUNCTION sync_team_players_on_profile_update()
+RETURNS TRIGGER AS $$
+DECLARE
+  team_record RECORD;
+  team_members JSONB;
+  game_record RECORD;
+BEGIN
+  -- Find all teams this user is a member of
+  FOR team_record IN 
+    SELECT tm.team_id 
+    FROM team_memberships tm
+    WHERE tm.user_id = NEW.user_id AND tm.is_active = true
+  LOOP
+    -- Get updated team members for this team
+    SELECT jsonb_agg(
+      jsonb_build_object(
+        'id', tm.user_id,
+        'username', up.username,
+        'full_name', up.full_name,
+        'avatar_url', up.avatar_url,
+        'role', tm.role
+      )
+    ) INTO team_members
+    FROM team_memberships tm
+    JOIN user_profiles up ON tm.user_id = up.user_id
+    WHERE tm.team_id = team_record.team_id AND tm.is_active = true;
+
+    -- Update all games associated with this team
+    FOR game_record IN 
+      SELECT g.id 
+      FROM games g
+      JOIN team_games tg ON g.id = tg.game_id
+      WHERE tg.team_id = team_record.team_id
+    LOOP
+      UPDATE games 
+      SET 
+        players = team_members,
+        updated_at = NOW()
+      WHERE id = game_record.id;
+    END LOOP;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to sync team players when user profile is updated
+CREATE TRIGGER sync_team_players_on_profile_change
+  AFTER UPDATE ON user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_team_players_on_profile_update();
+
+-- Function to get team members with their profiles
+CREATE OR REPLACE FUNCTION get_team_members(team_uuid UUID)
+RETURNS TABLE (
+  user_id UUID,
+  username TEXT,
+  full_name TEXT,
+  avatar_url TEXT,
+  role TEXT,
+  joined_at TIMESTAMP WITH TIME ZONE,
+  is_active BOOLEAN
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    tm.user_id,
+    up.username,
+    up.full_name,
+    up.avatar_url,
+    tm.role,
+    tm.joined_at,
+    tm.is_active
+  FROM team_memberships tm
+  JOIN user_profiles up ON tm.user_id = up.user_id
+  WHERE tm.team_id = team_uuid
+  ORDER BY 
+    CASE tm.role 
+      WHEN 'owner' THEN 1
+      WHEN 'admin' THEN 2
+      WHEN 'member' THEN 3
+    END,
+    tm.joined_at ASC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get user teams
+CREATE OR REPLACE FUNCTION get_user_teams(user_uuid UUID)
+RETURNS TABLE (
+  team_id UUID,
+  team_name TEXT,
+  description TEXT,
+  owner_id UUID,
+  avatar_url TEXT,
+  is_active BOOLEAN,
+  max_members INTEGER,
+  member_count BIGINT,
+  user_role TEXT,
+  created_at TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    t.id,
+    t.name,
+    t.description,
+    t.owner_id,
+    t.avatar_url,
+    t.is_active,
+    t.max_members,
+    (
+      SELECT COUNT(*) 
+      FROM team_memberships tm2 
+      WHERE tm2.team_id = t.id AND tm2.is_active = true
+    ) as member_count,
+    tm.role,
+    t.created_at
+  FROM teams t
+  JOIN team_memberships tm ON t.id = tm.team_id
+  WHERE tm.user_id = user_uuid AND tm.is_active = true
+  ORDER BY t.created_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Function to get user stats
 CREATE OR REPLACE FUNCTION get_user_stats(user_uuid UUID, game_type_filter TEXT DEFAULT NULL)
 RETURNS TABLE (

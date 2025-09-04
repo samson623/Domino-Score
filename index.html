@@ -3564,7 +3564,13 @@
                     updateAuthUI();
                     if (currentUser) {
                         loadUserBilling();
+                        // Show success message for new sign-ins
+                        if (event === 'SIGNED_IN') {
+                            showToast('Successfully signed in!', 'success');
+                        }
                     }
+                    // Restore theme preference after OAuth redirect
+                    restoreThemeAfterOAuth();
                 });
 
                 // Check current session on load
@@ -3574,6 +3580,8 @@
                 if (currentUser) {
                     loadUserBilling();
                 }
+                // Restore theme preference on initial load
+                restoreThemeAfterOAuth();
             } catch (e) {
                 console.error('Failed to set up Supabase:', e);
                 updateAuthUI();
@@ -3646,6 +3654,43 @@
                 updateAuthUI();
                 updateBillingUI();
                 showToast('Signed out successfully');
+            }
+        }
+
+        // Restore theme preference after OAuth redirect
+        function restoreThemeAfterOAuth() {
+            // Check URL parameters for theme
+            const urlParams = new URLSearchParams(window.location.search);
+            const themeFromUrl = urlParams.get('theme');
+            
+            // Check localStorage for stored theme preference
+            const storedTheme = localStorage.getItem('theme-preference');
+            
+            // Determine which theme to apply
+            const targetTheme = themeFromUrl || storedTheme || 'dark'; // Default to dark
+            
+            // Apply the theme
+            if (targetTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+            
+            // Clean up URL parameters if theme was passed
+            if (themeFromUrl) {
+                const newUrl = window.location.pathname + window.location.hash;
+                window.history.replaceState({}, document.title, newUrl);
+            }
+            
+            // Update theme toggle button if it exists
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const isDark = document.documentElement.classList.contains('dark');
+                themeToggle.innerHTML = isDark ? 
+                    '<i class="fas fa-sun text-yellow-400"></i>' : 
+                    '<i class="fas fa-moon text-gray-600"></i>';
             }
         }
 
