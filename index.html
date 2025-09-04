@@ -3591,33 +3591,44 @@
         // Initialize Supabase client (tries API first, then client fallback)
         async function initAuth() {
             try {
-                const response = await fetch('/api/public-env');
-                const contentType = response.headers.get('content-type');
+                // Check if we're in a development environment with static serve
+                const isStaticServe = window.location.port && !window.location.pathname.includes('/api/');
+                
+                if (!isStaticServe) {
+                    // Try to fetch from API first
+                    try {
+                        const response = await fetch('/api/public-env');
+                        const contentType = response.headers.get('content-type');
 
-                if (response.ok && contentType && contentType.includes('application/json')) {
-                    const { supabaseUrl, supabaseAnonKey } = await response.json();
-                    await initializeSupabase(supabaseUrl, supabaseAnonKey);
-                    return;
+                        if (response.ok && contentType && contentType.includes('application/json')) {
+                            const { supabaseUrl, supabaseAnonKey } = await response.json();
+                            await initializeSupabase(supabaseUrl, supabaseAnonKey);
+                            console.log('Supabase initialized from API');
+                            return;
+                        }
+                    } catch (apiError) {
+                        console.log('API not available, using fallback config');
+                    }
                 }
 
-                // API not available or returned non-JSON; try client fallback
-                console.warn('Env API not available or returned non-JSON, using client fallback');
-                const f = window.__PUBLIC_ENV__ || {};
-                if (f.supabaseUrl && f.supabaseAnonKey) {
-                    await initializeSupabase(f.supabaseUrl, f.supabaseAnonKey);
+                // Fallback to hardcoded client-side config
+                console.log('Using fallback Supabase configuration');
+                const config = window.__PUBLIC_ENV__ || {
+                    supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
+                    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
+                };
+                
+                if (config.supabaseUrl && config.supabaseAnonKey) {
+                    await initializeSupabase(config.supabaseUrl, config.supabaseAnonKey);
+                    console.log('Supabase initialized with fallback config');
                 } else {
+                    console.error('No Supabase configuration available');
                     updateAuthUI();
                 }
 
             } catch (error) {
-                console.warn('Env API fetch failed, using client fallback');
-                const f = window.__PUBLIC_ENV__ || {};
-                if (f.supabaseUrl && f.supabaseAnonKey) {
-                    await initializeSupabase(f.supabaseUrl, f.supabaseAnonKey);
-                } else {
-                    console.error('Failed to initialize auth:', error);
-                    updateAuthUI();
-                }
+                console.error('Failed to initialize auth:', error);
+                updateAuthUI();
             }
         }
 
