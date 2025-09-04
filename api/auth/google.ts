@@ -16,10 +16,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'signin') {
       // Initiate Google OAuth sign-in
+      const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/') || 'https://domino-score.vercel.app';
+      const finalRedirectTo = redirectTo || `${origin}/`;
+      
+      console.log('Google OAuth signin initiated:', {
+        origin,
+        redirectTo: finalRedirectTo,
+        userAgent: req.headers['user-agent']
+      });
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo || `${req.headers.origin || 'https://domino-score.vercel.app'}/`,
+          redirectTo: finalRedirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -28,7 +37,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (error) {
-        return res.status(400).json({ error: error.message });
+        console.error('Google OAuth signin error:', error);
+        return res.status(400).json({ 
+          error: error.message,
+          details: process.env.NODE_ENV === 'development' ? error : undefined
+        });
       }
 
       return res.status(200).json({ url: data.url });

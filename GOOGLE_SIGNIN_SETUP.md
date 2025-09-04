@@ -34,9 +34,11 @@ To complete the setup, you need to configure Google OAuth in your Supabase proje
    - Name: "Domino Score Web Client"
    - Authorized JavaScript origins:
      - `http://localhost:8000` (for development)
-     - `https://yourdomain.com` (for production)
+     - `https://domino-score-2hpufdk7q-dees-projects-6dbcda66.vercel.app` (for production)
+     - `https://your-custom-domain.com` (if using custom domain)
    - Authorized redirect URIs:
      - `https://your-supabase-project.supabase.co/auth/v1/callback`
+     - Note: The redirect URI should match your Supabase project URL exactly
 
 ### 2. Supabase Configuration
 
@@ -48,7 +50,8 @@ To complete the setup, you need to configure Google OAuth in your Supabase proje
    - **Client Secret**: From Google Cloud Console
 5. Configure redirect URLs:
    - Add `http://localhost:8000/` for development
-   - Add your production domain for live deployment
+   - Add `https://domino-score-2hpufdk7q-dees-projects-6dbcda66.vercel.app/` for production
+   - Add your custom domain if applicable
 
 ### 3. Environment Variables
 

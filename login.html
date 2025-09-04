@@ -272,10 +272,14 @@
             googleBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i>Signing in with Google...';
 
             try {
+                // Store current theme preference before redirect
+                const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+                localStorage.setItem('theme-preference', currentTheme);
+                
                 const { data, error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: window.location.origin + '/',
+                        redirectTo: window.location.origin + '/?theme=' + currentTheme,
                         queryParams: {
                             access_type: 'offline',
                             prompt: 'consent',
@@ -284,6 +288,11 @@
                 });
 
                 if (error) {
+                    console.error('Google OAuth error details:', {
+                        message: error.message,
+                        status: error.status,
+                        details: error
+                    });
                     throw error;
                 }
 
@@ -291,7 +300,18 @@
                 // No need to handle success here as user will be redirected
             } catch (error) {
                 console.error('Google sign-in error:', error);
-                showToast(error.message || 'Failed to sign in with Google', 'error');
+                
+                // Provide more specific error messages
+                let errorMessage = 'Failed to sign in with Google';
+                if (error.message?.includes('popup')) {
+                    errorMessage = 'Please allow popups for this site and try again';
+                } else if (error.message?.includes('network')) {
+                    errorMessage = 'Network error. Please check your connection and try again';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                showToast(errorMessage, 'error');
                 
                 // Re-enable button
                 googleBtn.disabled = false;
