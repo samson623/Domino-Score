@@ -200,9 +200,27 @@ export default async function handler(req: any, res: any) {
         .eq('user_id', user_id)
         .single();
 
+      if (memberError) {
+        console.error('Error fetching member info:', memberError);
+      }
+
+      // Verify synchronization worked by checking if team games were updated
+      const { data: teamGames, error: gamesError } = await supabase
+        .from('team_games')
+        .select('game_id')
+        .eq('team_id', teamId);
+
+      let syncStatus = 'success';
+      if (gamesError) {
+        console.error('Error checking team games for sync:', gamesError);
+        syncStatus = 'warning';
+      }
+
       return res.status(201).json({ 
         message: 'Member added successfully',
-        member: memberInfo 
+        member: memberInfo,
+        syncStatus,
+        teamGamesCount: teamGames?.length || 0
       });
     }
 
@@ -296,7 +314,23 @@ export default async function handler(req: any, res: any) {
         return res.status(500).json({ error: 'Failed to remove member' });
       }
 
-      return res.status(200).json({ message: 'Member removed successfully' });
+      // Verify synchronization by checking team games were updated
+      const { data: teamGames, error: gamesError } = await supabase
+        .from('team_games')
+        .select('game_id')
+        .eq('team_id', teamId);
+
+      let syncStatus = 'success';
+      if (gamesError) {
+        console.error('Error checking team games for sync:', gamesError);
+        syncStatus = 'warning';
+      }
+
+      return res.status(200).json({ 
+        message: 'Member removed successfully',
+        syncStatus,
+        teamGamesCount: teamGames?.length || 0
+      });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

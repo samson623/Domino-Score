@@ -274,7 +274,15 @@ RETURNS TRIGGER AS $$
 DECLARE
   team_members JSONB;
   game_record RECORD;
+  target_team_id UUID;
 BEGIN
+  -- Determine which team_id to use based on operation
+  IF TG_OP = 'DELETE' THEN
+    target_team_id := OLD.team_id;
+  ELSE
+    target_team_id := NEW.team_id;
+  END IF;
+
   -- Get all active team members with their profile information
   SELECT jsonb_agg(
     jsonb_build_object(
@@ -287,14 +295,19 @@ BEGIN
   ) INTO team_members
   FROM team_memberships tm
   JOIN user_profiles up ON tm.user_id = up.user_id
-  WHERE tm.team_id = NEW.team_id AND tm.is_active = true;
+  WHERE tm.team_id = target_team_id AND tm.is_active = true;
+
+  -- Handle case where no active members remain
+  IF team_members IS NULL THEN
+    team_members := '[]'::jsonb;
+  END IF;
 
   -- Update all games associated with this team
   FOR game_record IN 
     SELECT g.id 
     FROM games g
     JOIN team_games tg ON g.id = tg.game_id
-    WHERE tg.team_id = NEW.team_id
+    WHERE tg.team_id = target_team_id
   LOOP
     UPDATE games 
     SET 
@@ -303,7 +316,12 @@ BEGIN
     WHERE id = game_record.id;
   END LOOP;
 
-  RETURN NEW;
+  -- Return appropriate record based on operation
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
 END;
 $$ LANGUAGE plpgsql;
 
