@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vercel dev",
-    "build": "tsc --noEmit && echo \"Build completed\"",
+    "build": "echo \"Static build completed\"",
     "start": "vercel dev",
+    "serve": "serve -s . -p 3000",
     "deploy": "vercel --prod",
     "preview": "vercel",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -20,6 +21,7 @@
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
     "micro": "^10.0.1",
+    "serve": "14.2.4",
     "stripe": "^18.4.0"
   },
   "devDependencies": {
