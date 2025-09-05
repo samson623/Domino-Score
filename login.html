@@ -217,18 +217,32 @@
         // Initialize Supabase
         async function initSupabase() {
             try {
-                const response = await fetch('/api/public-env');
-                if (response.ok) {
-                    const { supabaseUrl, supabaseAnonKey } = await response.json();
-                    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-                } else {
-                    // Fallback to client-side config
-                    const config = window.__PUBLIC_ENV__ || {
-                        supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
-                        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
-                    };
-                    supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                // Check if we're in a development environment with static serve
+                const isStaticServe = window.location.port && !window.location.pathname.includes('/api/');
+                
+                if (!isStaticServe) {
+                    // Try to fetch from API first
+                    try {
+                        const response = await fetch('/api/public-env');
+                        if (response.ok) {
+                            const { supabaseUrl, supabaseAnonKey } = await response.json();
+                            supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+                            console.log('Supabase initialized from API');
+                            return;
+                        }
+                    } catch (apiError) {
+                        console.log('API not available, using fallback config');
+                    }
                 }
+                
+                // Fallback to client-side config
+                const config = window.__PUBLIC_ENV__ || {
+                    supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
+                    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
+                };
+                supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                console.log('Supabase initialized with fallback config');
+                
             } catch (error) {
                 console.error('Failed to initialize Supabase:', error);
                 showToast('Failed to initialize authentication', 'error');

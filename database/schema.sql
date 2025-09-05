@@ -465,3 +465,5 @@ BEGIN
     AND (game_type_filter IS NULL OR l.game_type = game_type_filter);
 END;
 $$ LANGUAGE plpgsql;
+
+-- Function to create or get user profile for team members

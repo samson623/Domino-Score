@@ -105,14 +105,14 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Role must be either "admin" or "member"' });
       }
 
-      // Check if user exists
-      const { data: userProfile, error: userError } = await supabase
+      // Verify user exists
+      const { data: userExists, error: userError } = await supabase
         .from('user_profiles')
-        .select('user_id')
-        .eq('user_id', user_id)
+        .select('id')
+        .eq('id', user_id)
         .single();
 
-      if (userError || !userProfile) {
+      if (userError || !userExists) {
         return res.status(404).json({ error: 'User not found' });
       }
 

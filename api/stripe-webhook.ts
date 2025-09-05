@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
         const status = sub.status;
-        const currentEnd = new Date((sub.current_period_end || 0) * 1000).toISOString();
+        const currentEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
 
         const { data: ub } = await supabase
           .from('user_billing')

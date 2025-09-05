@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player-Team Sync Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .data-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Player-Team Synchronization Test</h1>
+    
+    <div class="test-container">
+        <h2>Test Setup</h2>
+        <p>This test validates that the <code>createTeam()</code> and <code>addPlayerIfNotExists()</code> functions work correctly to keep players and teams in sync.</p>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearTestData()">Clear Test Data</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Current Data State</h2>
+        <button onclick="displayCurrentData()">Show Current Players & Teams</button>
+        <div id="dataDisplay"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Manual Test Interface</h2>
+        <div>
+            <label>Player 1 Name:</label>
+            <input type="text" id="testPlayer1" placeholder="Enter player 1 name" value="Alice">
+        </div>
+        <br>
+        <div>
+            <label>Player 2 Name:</label>
+            <input type="text" id="testPlayer2" placeholder="Enter player 2 name" value="Bob">
+        </div>
+        <br>
+        <button onclick="testCreateTeam()">Create Test Team</button>
+        <button onclick="displayCurrentData()">Refresh Data Display</button>
+    </div>
+
+    <script>
+        // Mock localStorage for testing
+        let players = [];
+        let teams = [];
+
+        // Load existing data from localStorage if available
+        function loadTestData() {
+            const storedPlayers = localStorage.getItem('dominoPlayers');
+            const storedTeams = localStorage.getItem('dominoTeams');
+            
+            if (storedPlayers) {
+                players = JSON.parse(storedPlayers);
+            }
+            if (storedTeams) {
+                teams = JSON.parse(storedTeams);
+            }
+        }
+
+        // Implementation of the functions being tested (copied from main app)
+        function addPlayerIfNotExists(playerName) {
+            if (!playerName) return;
+            const nameExists = players.some(p => p.name.toLowerCase() === playerName.toLowerCase());
+            if (!nameExists) {
+                const newPlayer = { id: Date.now().toString(), name: playerName };
+                players.push(newPlayer);
+                localStorage.setItem('dominoPlayers', JSON.stringify(players));
+            }
+        }
+
+        function findOrCreateTeam(player1Name, player2Name) {
+            const sortedNames = [player1Name, player2Name].sort();
+            
+            let existingTeam = teams.find(team => 
+                team.player1 === sortedNames[0] && team.player2 === sortedNames[1]
+            );
+
+            if (existingTeam) {
+                return existingTeam;
+            } else {
+                const newTeam = {
+                    id: Date.now().toString(),
+                    player1: sortedNames[0],
+                    player2: sortedNames[1],
+                };
+                teams.push(newTeam);
+                localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                return newTeam;
+            }
+        }
+
+        function createTeam(player1Name, player2Name) {
+            if (!player1Name || !player2Name) {
+                return { error: 'Please enter both player names' };
+            }
+
+            if (player1Name.toLowerCase() === player2Name.toLowerCase()) {
+                return { error: 'Please enter two different player names' };
+            }
+
+            // This is the key part: it adds players to the master list if they are new.
+            addPlayerIfNotExists(player1Name);
+            addPlayerIfNotExists(player2Name);
+            
+            // This part then creates the team itself.
+            const team = findOrCreateTeam(player1Name, player2Name);
+            
+            return { success: true, team: team };
+        }
+
+        // Test functions
+        function logResult(testName, passed, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `<strong>${testName}:</strong> ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function logInfo(message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result info';
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function clearTestData() {
+            players = [];
+            teams = [];
+            localStorage.removeItem('dominoPlayers');
+            localStorage.removeItem('dominoTeams');
+            logInfo('Test data cleared. Players and teams arrays reset.');
+            displayCurrentData();
+        }
+
+        function displayCurrentData() {
+            const dataDiv = document.getElementById('dataDisplay');
+            const data = {
+                players: players,
+                teams: teams,
+                playersCount: players.length,
+                teamsCount: teams.length
+            };
+            dataDiv.innerHTML = JSON.stringify(data, null, 2);
+        }
+
+        function testCreateTeam() {
+            const player1 = document.getElementById('testPlayer1').value.trim();
+            const player2 = document.getElementById('testPlayer2').value.trim();
+            
+            if (!player1 || !player2) {
+                logResult('Manual Test', false, 'Please enter both player names');
+                return;
+            }
+            
+            const result = createTeam(player1, player2);
+            if (result.success) {
+                logResult('Manual Test', true, `Team created successfully: ${result.team.player1} & ${result.team.player2}`);
+            } else {
+                logResult('Manual Test', false, result.error);
+            }
+            displayCurrentData();
+        }
+
+        function runAllTests() {
+            clearTestResults();
+            logInfo('Starting Player-Team Synchronization Tests...');
+            
+            // Test 1: Basic player addition
+            const initialPlayerCount = players.length;
+            addPlayerIfNotExists('TestPlayer1');
+            const afterAddCount = players.length;
+            logResult('Test 1 - Add New Player', 
+                afterAddCount === initialPlayerCount + 1, 
+                `Player count increased from ${initialPlayerCount} to ${afterAddCount}`);
+
+            // Test 2: Duplicate player prevention
+            const beforeDuplicateCount = players.length;
+            addPlayerIfNotExists('TestPlayer1'); // Same name
+            const afterDuplicateCount = players.length;
+            logResult('Test 2 - Prevent Duplicate Players', 
+                beforeDuplicateCount === afterDuplicateCount, 
+                `Player count remained ${afterDuplicateCount} (no duplicate added)`);
+
+            // Test 3: Case insensitive duplicate prevention
+            const beforeCaseCount = players.length;
+            addPlayerIfNotExists('testplayer1'); // Different case
+            const afterCaseCount = players.length;
+            logResult('Test 3 - Case Insensitive Duplicate Prevention', 
+                beforeCaseCount === afterCaseCount, 
+                `Player count remained ${afterCaseCount} (case insensitive check worked)`);
+
+            // Test 4: Team creation with new players
+            const initialTeamCount = teams.length;
+            const initialPlayerCountBeforeTeam = players.length;
+            const teamResult = createTeam('NewPlayer1', 'NewPlayer2');
+            const finalPlayerCount = players.length;
+            const finalTeamCount = teams.length;
+            
+            logResult('Test 4 - Team Creation Success', 
+                teamResult.success === true, 
+                `Team creation returned success: ${teamResult.success}`);
+            
+            logResult('Test 5 - Players Added During Team Creation', 
+                finalPlayerCount === initialPlayerCountBeforeTeam + 2, 
+                `Player count increased from ${initialPlayerCountBeforeTeam} to ${finalPlayerCount}`);
+            
+            logResult('Test 6 - Team Added', 
+                finalTeamCount === initialTeamCount + 1, 
+                `Team count increased from ${initialTeamCount} to ${finalTeamCount}`);
+
+            // Test 7: Team creation with existing players
+            const beforeExistingTeamCount = teams.length;
+            const beforeExistingPlayerCount = players.length;
+            const existingTeamResult = createTeam('TestPlayer1', 'NewPlayer1'); // One existing, one new
+            const afterExistingPlayerCount = players.length;
+            const afterExistingTeamCount = teams.length;
+            
+            logResult('Test 7 - Mixed Existing/New Players', 
+                afterExistingPlayerCount === beforeExistingPlayerCount, 
+                `Player count remained ${afterExistingPlayerCount} (existing player not duplicated)`);
+            
+            logResult('Test 8 - New Team with Mixed Players', 
+                afterExistingTeamCount === beforeExistingTeamCount + 1, 
+                `Team count increased from ${beforeExistingTeamCount} to ${afterExistingTeamCount}`);
+
+            // Test 9: Duplicate team prevention
+            const beforeDuplicateTeamCount = teams.length;
+            const duplicateTeamResult = createTeam('NewPlayer1', 'NewPlayer2'); // Same as Test 4
+            const afterDuplicateTeamCount = teams.length;
+            
+            logResult('Test 9 - Duplicate Team Prevention', 
+                afterDuplicateTeamCount === beforeDuplicateTeamCount, 
+                `Team count remained ${afterDuplicateTeamCount} (duplicate team not created)`);
+
+            // Test 10: Player name sorting in teams
+            const sortTestTeam = findOrCreateTeam('Zebra', 'Alpha');
+            logResult('Test 10 - Player Name Sorting', 
+                sortTestTeam.player1 === 'Alpha' && sortTestTeam.player2 === 'Zebra', 
+                `Players sorted correctly: ${sortTestTeam.player1} comes before ${sortTestTeam.player2}`);
+
+            // Test 11: Error handling - same player names
+            const sameNameResult = createTeam('SameName', 'SameName');
+            logResult('Test 11 - Same Player Name Error', 
+                sameNameResult.error !== undefined, 
+                `Correctly rejected same player names: ${sameNameResult.error}`);
+
+            // Test 12: Error handling - empty names
+            const emptyNameResult = createTeam('', 'ValidName');
+            logResult('Test 12 - Empty Name Error', 
+                emptyNameResult.error !== undefined, 
+                `Correctly rejected empty names: ${emptyNameResult.error}`);
+
+            logInfo('All tests completed! Check results above.');
+            displayCurrentData();
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            loadTestData();
+            displayCurrentData();
+            logInfo('Test page loaded. Click "Run All Tests" to start testing.');
+        };
+    </script>
+</body>
+</html>

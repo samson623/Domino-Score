@@ -1,122 +1,76 @@
-import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import fs from 'fs';
+import path from 'path';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const basePath = process.cwd();
+const teamsFile = path.join(basePath, 'database', 'teams.json');
 
-interface TeamCreateRequest {
-  name: string;
-  description?: string;
-  avatar_url?: string;
-  max_members?: number;
-}
-
-interface TeamUpdateRequest {
-  name?: string;
-  description?: string;
-  avatar_url?: string;
-  max_members?: number;
-  is_active?: boolean;
-}
-
-export default async function handler(req: any, res: any) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+async function ensureTeamsFile() {
+  await fs.promises.mkdir(path.dirname(teamsFile), { recursive: true });
   try {
-    // Verify JWT token
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Missing or invalid authorization header' });
-    }
-
-    const token = authHeader.substring(7);
-    let decoded: any;
-    
-    try {
-      decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!);
-    } catch (error) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    const userId = decoded.sub;
-
-    if (req.method === 'GET') {
-      // Get user's teams
-      const { data: teams, error } = await supabase
-        .rpc('get_user_teams', { user_uuid: userId });
-
-      if (error) {
-        console.error('Error fetching teams:', error);
-        return res.status(500).json({ error: 'Failed to fetch teams' });
-      }
-
-      return res.status(200).json({ teams });
-    }
-
-    if (req.method === 'POST') {
-      // Create new team
-      const { name, description, avatar_url, max_members = 10 }: TeamCreateRequest = req.body;
-
-      if (!name || name.trim().length === 0) {
-        return res.status(400).json({ error: 'Team name is required' });
-      }
-
-      if (name.length > 100) {
-        return res.status(400).json({ error: 'Team name must be 100 characters or less' });
-      }
-
-      if (description && description.length > 500) {
-        return res.status(400).json({ error: 'Description must be 500 characters or less' });
-      }
-
-      if (max_members && (max_members < 2 || max_members > 50)) {
-        return res.status(400).json({ error: 'Max members must be between 2 and 50' });
-      }
-
-      // Create team
-      const { data: team, error: teamError } = await supabase
-        .from('teams')
-        .insert({
-          name: name.trim(),
-          description: description?.trim() || null,
-          owner_id: userId,
-          avatar_url: avatar_url || null,
-          max_members
-        })
-        .select()
-        .single();
-
-      if (teamError) {
-        console.error('Error creating team:', teamError);
-        return res.status(500).json({ error: 'Failed to create team' });
-      }
-
-      // Get the created team with member count
-      const { data: createdTeam, error: fetchError } = await supabase
-        .rpc('get_user_teams', { user_uuid: userId })
-        .eq('team_id', team.id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching created team:', fetchError);
-        return res.status(500).json({ error: 'Team created but failed to fetch details' });
-      }
-
-      return res.status(201).json({ team: createdTeam });
-    }
-
-    return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error) {
-    console.error('Teams API error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    await fs.promises.access(teamsFile);
+  } catch {
+    await fs.promises.writeFile(teamsFile, JSON.stringify([]), 'utf8');
   }
+}
+
+async function readTeams(): Promise<any[]> {
+  await ensureTeamsFile();
+  const raw = await fs.promises.readFile(teamsFile, 'utf8');
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+async function writeTeams(data: any[]) {
+  await ensureTeamsFile();
+  await fs.promises.writeFile(teamsFile, JSON.stringify(data, null, 2), 'utf8');
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'GET') {
+    const teams = await readTeams();
+    res.status(200).json(teams);
+    return;
+  }
+
+  if (req.method === 'POST') {
+    const { player1, player2 } = req.body || {};
+    if (typeof player1 !== 'string' || typeof player2 !== 'string') {
+      res.status(400).json({ error: 'player1 and player2 are required' });
+      return;
+    }
+
+    const p1 = player1.trim();
+    const p2 = player2.trim();
+
+    if (!p1 || !p2) {
+      res.status(400).json({ error: 'player1 and player2 are required' });
+      return;
+    }
+
+    if (p1.toLowerCase() === p2.toLowerCase()) {
+      res.status(400).json({ error: 'players must be different' });
+      return;
+    }
+
+    const teams = await readTeams();
+    // Normalize order for dedupe
+    const a = [p1, p2].sort();
+    const existing = teams.find(t => t.player1 === a[0] && t.player2 === a[1]);
+    if (existing) {
+      res.status(200).json(existing);
+      return;
+    }
+
+    const newTeam = { id: Date.now().toString(), player1: a[0], player2: a[1] };
+    teams.push(newTeam);
+    await writeTeams(teams);
+    res.status(200).json(newTeam);
+    return;
+  }
+
+  res.status(405).json({ error: 'Method Not Allowed' });
 }
