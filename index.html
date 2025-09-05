@@ -2664,14 +2664,33 @@
             loadPlayers();
         }
 
-        function addPlayerIfNotExists(playerName) {
+        async function addPlayerIfNotExists(playerName) {
             if (!playerName) return;
+            // Check locally first
             const nameExists = players.some(p => p.name.toLowerCase() === playerName.toLowerCase());
-            if (!nameExists) {
-                const newPlayer = { id: Date.now().toString(), name: playerName };
-                players.push(newPlayer);
-                localStorage.setItem('dominoPlayers', JSON.stringify(players));
+            if (nameExists) return;
+            // Try backend API
+            try {
+                const resp = await fetch('/api/players', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name: playerName })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const newPlayer = { id: data.id || Date.now().toString(), name: playerName };
+                    players.push(newPlayer);
+                    localStorage.setItem('dominoPlayers', JSON.stringify(players));
+                    return newPlayer;
+                }
+            } catch (e) {
+                // fallback to local creation
             }
+            // Fallback local insertion if API not available
+            const newPlayer = { id: Date.now().toString(), name: playerName };
+            players.push(newPlayer);
+            localStorage.setItem('dominoPlayers', JSON.stringify(players));
+            return newPlayer;
         }
 
         function deletePlayer(playerId) {
@@ -2771,6 +2790,7 @@
             
             hideCreateTeam();
             loadTeams();
+            loadPlayers();
         }
 
         function findOrCreateTeam(player1Name, player2Name) {
