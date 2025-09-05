@@ -105,14 +105,14 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Role must be either "admin" or "member"' });
       }
 
-      // Check if user exists
-      const { data: userProfile, error: userError } = await supabase
+      // Verify user exists
+      const { data: userExists, error: userError } = await supabase
         .from('user_profiles')
-        .select('user_id')
-        .eq('user_id', user_id)
+        .select('id')
+        .eq('id', user_id)
         .single();
 
-      if (userError || !userProfile) {
+      if (userError || !userExists) {
         return res.status(404).json({ error: 'User not found' });
       }
 
@@ -200,27 +200,9 @@ export default async function handler(req: any, res: any) {
         .eq('user_id', user_id)
         .single();
 
-      if (memberError) {
-        console.error('Error fetching member info:', memberError);
-      }
-
-      // Verify synchronization worked by checking if team games were updated
-      const { data: teamGames, error: gamesError } = await supabase
-        .from('team_games')
-        .select('game_id')
-        .eq('team_id', teamId);
-
-      let syncStatus = 'success';
-      if (gamesError) {
-        console.error('Error checking team games for sync:', gamesError);
-        syncStatus = 'warning';
-      }
-
       return res.status(201).json({ 
         message: 'Member added successfully',
-        member: memberInfo,
-        syncStatus,
-        teamGamesCount: teamGames?.length || 0
+        member: memberInfo 
       });
     }
 
@@ -314,23 +296,7 @@ export default async function handler(req: any, res: any) {
         return res.status(500).json({ error: 'Failed to remove member' });
       }
 
-      // Verify synchronization by checking team games were updated
-      const { data: teamGames, error: gamesError } = await supabase
-        .from('team_games')
-        .select('game_id')
-        .eq('team_id', teamId);
-
-      let syncStatus = 'success';
-      if (gamesError) {
-        console.error('Error checking team games for sync:', gamesError);
-        syncStatus = 'warning';
-      }
-
-      return res.status(200).json({ 
-        message: 'Member removed successfully',
-        syncStatus,
-        teamGamesCount: teamGames?.length || 0
-      });
+      return res.status(200).json({ message: 'Member removed successfully' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
