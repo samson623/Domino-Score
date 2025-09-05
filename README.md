@@ -2,6 +2,8 @@
 
 A modern, feature-rich web application for tracking domino game scores with real-time gameplay, leaderboards, and premium features.
 
+> This line was added as a simple change to test GitHub pull requests.
+
 ## 🌟 Features
 
 ### Core Functionality
