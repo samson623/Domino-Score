@@ -282,3 +282,7 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 **Made with ❤️ for domino enthusiasts worldwide**
 
 For more information, visit our [website](https://domino-score.vercel.app) or check out the [live demo](https://domino-score.vercel.app).
+
+## Development Notes
+
+This project currently includes sample changes for testing pull request workflows.
