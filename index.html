@@ -2043,7 +2043,7 @@
             showSection('live');
         }
 
-        function startGame() {
+        async function startGame() {
             bestOf = parseInt(document.getElementById('bestOfSelect').value);
             matchWins1 = 0;
             matchWins2 = 0;
@@ -2067,10 +2067,12 @@
                     return;
                 }
 
-                allPlayerNames.forEach(addPlayerIfNotExists);
+                for (const name of allPlayerNames) {
+                    await addPlayerIfNotExists(name);
+                }
 
-                const team1 = findOrCreateTeam(t1p1, t1p2);
-                const team2 = findOrCreateTeam(t2p1, t2p2);
+                const team1 = await findOrCreateTeam(t1p1, t1p2);
+                const team2 = await findOrCreateTeam(t2p1, t2p2);
                 
                 currentGame = {
                     gameMode: 'team',
@@ -2099,8 +2101,8 @@
                     return;
                 }
 
-                addPlayerIfNotExists(player1Name);
-                addPlayerIfNotExists(player2Name);
+                await addPlayerIfNotExists(player1Name);
+                await addPlayerIfNotExists(player2Name);
                 
                 currentGame = {
                     gameMode: 'single',
@@ -2684,6 +2686,7 @@
                     return newPlayer;
                 }
             } catch (e) {
+                console.error('Failed to create team via API, falling back to local storage:', e);
                 // fallback to local creation
             }
             // Fallback local insertion if API not available
@@ -2769,7 +2772,7 @@
             document.getElementById('teamPlayer2Input').value = '';
         }
 
-        function createTeam() {
+        async function createTeam() {
             const player1Name = document.getElementById('teamPlayer1Input').value.trim();
             const player2Name = document.getElementById('teamPlayer2Input').value.trim();
             
@@ -2783,17 +2786,17 @@
                 return;
             }
 
-            addPlayerIfNotExists(player1Name);
-            addPlayerIfNotExists(player2Name);
+            await addPlayerIfNotExists(player1Name);
+            await addPlayerIfNotExists(player2Name);
             
-            findOrCreateTeam(player1Name, player2Name);
+            await findOrCreateTeam(player1Name, player2Name);
             
             hideCreateTeam();
             loadTeams();
             loadPlayers();
         }
 
-        function findOrCreateTeam(player1Name, player2Name) {
+        async function findOrCreateTeam(player1Name, player2Name) {
             const sortedNames = [player1Name, player2Name].sort();
             
             let existingTeam = teams.find(team => 
@@ -2802,16 +2805,39 @@
 
             if (existingTeam) {
                 return existingTeam;
-            } else {
-                const newTeam = {
-                    id: Date.now().toString(),
-                    player1: sortedNames[0],
-                    player2: sortedNames[1],
-                };
-                teams.push(newTeam);
-                localStorage.setItem('dominoTeams', JSON.stringify(teams));
-                return newTeam;
             }
+
+            // Try backend API
+            try {
+                const resp = await fetch('/api/teams', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ player1: sortedNames[0], player2: sortedNames[1] })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const newTeam = {
+                        id: data.id || Date.now().toString(),
+                        player1: sortedNames[0],
+                        player2: sortedNames[1],
+                    };
+                    teams.push(newTeam);
+                    localStorage.setItem('dominoTeams', JSON.stringify(teams));
+                    return newTeam;
+                }
+            } catch (e) {
+                // fallback to local creation
+            }
+
+            // Fallback local insertion if API not available
+            const newTeam = {
+                id: Date.now().toString(),
+                player1: sortedNames[0],
+                player2: sortedNames[1],
+            };
+            teams.push(newTeam);
+            localStorage.setItem('dominoTeams', JSON.stringify(teams));
+            return newTeam;
         }
 
         function deleteTeam(teamId) {
