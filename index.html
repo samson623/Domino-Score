@@ -279,10 +279,10 @@
                         </button>
                         <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
                             <div class="py-2">
-                                <button onclick="showBilling()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <button id="billingBtn" onclick="showBilling()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <i class="fas fa-credit-card mr-2"></i>Billing
                                 </button>
-                                <button onclick="handleSignOut()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <button id="signOutBtn" onclick="handleSignOut()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
                                 </button>
                             </div>
@@ -3606,15 +3606,21 @@
             const userMenu = document.getElementById('userMenu');
             const userName = document.getElementById('userName');
             const userAvatar = document.getElementById('userAvatar');
+            const billingBtn = document.getElementById('billingBtn');
+            const signOutBtn = document.getElementById('signOutBtn');
 
             if (currentUser) {
                 signInBtn.classList.add('hidden');
                 userMenu.classList.remove('hidden');
+                billingBtn.classList.remove('hidden');
+                signOutBtn.classList.remove('hidden');
                 userName.textContent = currentUser.user_metadata?.name || currentUser.email;
                 userAvatar.src = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.email)}&background=3B82F6&color=fff`;
             } else {
                 signInBtn.classList.remove('hidden');
                 userMenu.classList.add('hidden');
+                billingBtn.classList.add('hidden');
+                signOutBtn.classList.add('hidden');
             }
         }
 
