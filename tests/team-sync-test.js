@@ -9,8 +9,9 @@ const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 
 // Test configuration
-const SUPABASE_URL = process.env.SUPABASE_URL || 'your-supabase-url';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-key';
+// Use the same environment variables used by the API routes
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'your-supabase-url';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE || 'your-service-key';
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'your-jwt-secret';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
