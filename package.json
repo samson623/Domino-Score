@@ -2,9 +2,9 @@
   "name": "_domino-score",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "vercel dev --listen 0.0.0.0:3000",
     "build": "echo \"Static build completed\"",
-    "start": "vercel dev",
+    "start": "vercel dev --listen 0.0.0.0:3000",
     "serve": "serve -s . -p 3000",
     "deploy": "vercel --prod",
     "preview": "vercel",
