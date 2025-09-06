@@ -3004,6 +3004,9 @@
             document.getElementById('comparison-select1').value = '';
             document.getElementById('comparison-select2').value = '';
             document.getElementById('comparison-results').innerHTML = '';
+            // Default to daily comparisons when resetting
+            const dailyRadio = document.getElementById('period-daily');
+            if (dailyRadio) dailyRadio.checked = true;
         }
 
         function getOverallStats(entityId, period) {
@@ -3060,7 +3063,7 @@
             const resultsDiv = document.getElementById('comparison-results');
 
             if (!select1Val || !select2Val) {
-                resultsDiv.innerHTML = '';
+                resultsDiv.innerHTML = '<p class="text-sm text-gray-500">Select two opponents to compare.</p>';
                 return;
             }
 
