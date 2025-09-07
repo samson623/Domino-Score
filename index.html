@@ -90,6 +90,48 @@
             background-color: #4b5563;
             color: #f3f4f6;
         }
+
+        /* User dropdown (Billing / Sign Out) - match select dropdown look */
+        #userDropdown {
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+        }
+        #userDropdown button {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px; /* match select input height */
+            font-size: 0.875rem; /* text-sm */
+            color: #374151; /* gray-700 */
+        }
+        #userDropdown button:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .dark #userDropdown {
+            background-color: #4b5563; /* gray-600 to match .dark select */
+            border-color: #6b7280; /* gray-500 */
+        }
+        .dark #userDropdown button {
+            color: #f3f4f6; /* gray-100 */
+        }
+        .dark #userDropdown button:hover {
+            background-color: #374151; /* gray-700 */
+        }
+
+        /* Additional dark-mode tweaks for Billing section to align with UI theme */
+        .dark #billingSection .domino-card {
+            background-color: #374151;
+            color: #f3f4f6;
+            border: 1px solid #4b5563;
+        }
+        .dark #billingSection h2, .dark #billingSection h3 {
+            color: #e5e7eb;
+        }
+        .dark #billingSection #planName,
+        .dark #billingSection #planDescription,
+        .dark #billingSection #planPrice,
+        .dark #billingSection #planStatus {
+            color: #f3f4f6;
+        }
         
         .score-btn {
             transition: all 0.2s ease;
@@ -3620,8 +3662,8 @@
 
         // Handle sign in
         function handleSignIn() {
-            // Redirect to login page
-            window.location.href = '/login.html';
+            // Redirect to login page (relative path for file:// and server)
+            window.location.href = 'login.html';
         }
 
         // Handle sign out
