@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'preview-server',
-      script: 'node_modules/.bin/serve',
-      args: '-s . -l 3000',
+      script: 'node preview-server.js',
+      args: '',
       cwd: __dirname,
       env: {
         NODE_ENV: 'production'
