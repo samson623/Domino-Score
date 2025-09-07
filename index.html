@@ -3806,8 +3806,8 @@
 
         // Handle sign in
         function handleSignIn() {
-            // Redirect to login page (relative path for file:// and server)
-            window.location.href = 'login.html';
+            // Redirect to login route (works with Vercel rewrites and local server)
+            window.location.href = '/login';
         }
 
         // Handle sign out
