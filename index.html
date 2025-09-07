@@ -874,6 +874,14 @@
                         <i class="fas fa-infinity mr-1"></i>All Time
                     </button>
                 </div>
+                <div id="weeklySelectors" class="mt-3 hidden">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label for="weeklyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
+                        <select id="weeklyMonthSelect" class="p-2 border rounded-lg"></select>
+                        <label for="weeklyWeekSelect" class="text-sm text-gray-600 dark:text-gray-300">Week</label>
+                        <select id="weeklyWeekSelect" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1072,7 +1080,7 @@
         let games = JSON.parse(localStorage.getItem('dominoGames')) || [];
         let currentSection = 'home';
         let chartInstances = {};
-        let currentPeriod = 'daily';
+        let currentPeriod = 'alltime';
         let bestOf = 1;
         let matchWins1 = 0;
         let matchWins2 = 0;
@@ -1721,6 +1729,11 @@
         }
 
         function loadHistory() {
+            // Reload latest data to ensure history reflects recent changes
+            players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
+            teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
+            games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+
             const filteredGames = filterGamesByPeriod(games, currentHistoryPeriod);
             document.getElementById('totalGamesCount').textContent = filteredGames.length;
             
@@ -2830,7 +2843,7 @@
 
         // Leaderboard section
         function loadLeaderboard() {
-            showLeaderboard('daily');
+            showLeaderboard('alltime');
         }
 
         function showLeaderboard(period) {
@@ -2851,19 +2864,24 @@
             const monthYearOptions = { month: 'long', year: 'numeric' };
             const shortMonthDayOptions = { month: 'short', day: 'numeric' };
 
+            // Show/hide weekly selectors
+            const weeklySelectors = document.getElementById('weeklySelectors');
+            if (weeklySelectors) {
+                weeklySelectors.classList.toggle('hidden', period !== 'weekly');
+            }
+
             switch (period) {
                 case 'daily':
                     periodText = `Today: ${now.toLocaleDateString('en-US', options)}`;
                     break;
                 case 'weekly':
-                    const firstDayOfWeek = new Date(now);
-                    firstDayOfWeek.setDate(now.getDate() - now.getDay());
-                    const lastDayOfWeek = new Date(firstDayOfWeek);
-                    lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
-                    periodText = `This Week: ${firstDayOfWeek.toLocaleDateString('en-US', shortMonthDayOptions)} - ${lastDayOfWeek.toLocaleDateString('en-US', shortMonthDayOptions)}`;
+                    const { label } = getSelectedWeekRange();
+                    periodText = `Week: ${label}`;
                     break;
                 case 'monthly':
-                    periodText = `This Month: ${now.toLocaleDateString('en-US', monthYearOptions)}`;
+                    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+                    periodText = `Last Month: ${prevMonthStart.toLocaleDateString('en-US', shortMonthDayOptions)} - ${prevMonthEnd.toLocaleDateString('en-US', shortMonthDayOptions)}`;
                     break;
                 case 'alltime':
                     periodText = 'All Time';
@@ -2872,13 +2890,93 @@
             document.getElementById('teamPeriodInfo').textContent = periodText;
             document.getElementById('playerPeriodInfo').textContent = periodText;
 
+            // Reload latest data to keep leaderboard in sync
+            players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
+            teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
             games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+
+            // Populate weekly dropdowns if needed
+            if (period === 'weekly') {
+                populateWeeklySelectors();
+            }
             
             loadTeamRankings(period);
             loadPlayerStats(period);
             loadOpponentComparison();
             loadStreaks(period);
             loadPetarollLeaders(period);
+        }
+
+        function populateWeeklySelectors() {
+            const monthSelect = document.getElementById('weeklyMonthSelect');
+            const weekSelect = document.getElementById('weeklyWeekSelect');
+            if (!monthSelect || !weekSelect) return;
+
+            const months = buildRecentMonths(12); // last 12 months
+            monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+
+            // Default to current month
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            monthSelect.value = currentKey;
+
+            const weeks = buildWeeksForMonth(now.getFullYear(), now.getMonth());
+            weekSelect.innerHTML = weeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+            weekSelect.value = '0';
+
+            monthSelect.onchange = () => {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                const monthWeeks = buildWeeksForMonth(y, m - 1);
+                weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+                weekSelect.value = '0';
+                showLeaderboard('weekly');
+            };
+            weekSelect.onchange = () => showLeaderboard('weekly');
+        }
+
+        function buildRecentMonths(count) {
+            const list = [];
+            const now = new Date();
+            for (let i = 0; i < count; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                list.push({
+                    year: d.getFullYear(),
+                    month: d.getMonth() + 1,
+                    label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                });
+            }
+            return list;
+        }
+
+        function buildWeeksForMonth(year, monthIndex /* 0-based */) {
+            const first = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+            const last = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+            const weeks = [];
+
+            let start = new Date(first);
+            while (start <= last) {
+                const end = new Date(Math.min(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59, 999).getTime(), last.getTime()));
+                const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                weeks.push({ start, end, label });
+                start = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1, 0, 0, 0, 0);
+            }
+            return weeks;
+        }
+
+        function getSelectedWeekRange() {
+            const monthSelect = document.getElementById('weeklyMonthSelect');
+            const weekSelect = document.getElementById('weeklyWeekSelect');
+            const now = new Date();
+            let year = now.getFullYear();
+            let monthIndex = now.getMonth();
+            if (monthSelect && monthSelect.value) {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                year = y; monthIndex = m - 1;
+            }
+            const weeks = buildWeeksForMonth(year, monthIndex);
+            const idx = weekSelect && weekSelect.value ? parseInt(weekSelect.value, 10) : 0;
+            const safeIdx = Math.max(0, Math.min(idx, weeks.length - 1));
+            return weeks[safeIdx] || { start: new Date(year, monthIndex, 1), end: new Date(year, monthIndex + 1, 0), label: '' };
         }
 
         function loadTeamRankings(period) {
@@ -3263,23 +3361,38 @@
 
         function filterGamesByPeriod(games, period) {
             const now = new Date();
-            
+
+            // Helpers normalized to local time
+            const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+            const endOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+            // Month helpers
+            const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+            const endOfMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+
+            let start, end;
             switch (period) {
                 case 'daily':
-                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    return games.filter(game => new Date(game.date) >= todayStart);
+                    start = startOfDay(now);
+                    end = endOfDay(now);
+                    break;
                 case 'weekly':
-                    const firstDayOfWeek = new Date(now);
-                    firstDayOfWeek.setDate(now.getDate() - now.getDay());
-                    firstDayOfWeek.setHours(0, 0, 0, 0);
-                    return games.filter(game => new Date(game.date) >= firstDayOfWeek);
+                    const range = getSelectedWeekRange();
+                    start = range.start;
+                    end = range.end;
+                    break;
                 case 'monthly':
-                    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                    return games.filter(game => new Date(game.date) >= firstDayOfMonth);
+                    start = startOfMonth(now);
+                    end = endOfMonth(now); // include all days of month
+                    break;
                 case 'alltime':
                 default:
                     return games;
             }
+
+            return games.filter(g => {
+                const gd = new Date(g.date);
+                return gd >= start && gd <= end;
+            });
         }
 
         // Voice command functionality
@@ -3885,7 +3998,7 @@
             } else if (sectionName === 'live') {
                 loadLiveSection();
             } else if (sectionName === 'history') {
-                showHistory('daily');
+                showHistory('alltime');
             } else if (sectionName === 'billing' && currentUser) {
                 loadUserBilling();
             }
