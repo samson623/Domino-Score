@@ -882,6 +882,12 @@
                         <select id="weeklyWeekSelect" class="p-2 border rounded-lg"></select>
                     </div>
                 </div>
+                <div id="monthlySelectors" class="mt-3 hidden">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label for="monthlyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
+                        <select id="monthlyMonthSelect" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2866,9 +2872,9 @@
 
             // Show/hide weekly selectors
             const weeklySelectors = document.getElementById('weeklySelectors');
-            if (weeklySelectors) {
-                weeklySelectors.classList.toggle('hidden', period !== 'weekly');
-            }
+            if (weeklySelectors) weeklySelectors.classList.toggle('hidden', period !== 'weekly');
+            const monthlySelectors = document.getElementById('monthlySelectors');
+            if (monthlySelectors) monthlySelectors.classList.toggle('hidden', period !== 'monthly');
 
             switch (period) {
                 case 'daily':
@@ -2879,9 +2885,8 @@
                     periodText = `Week: ${label}`;
                     break;
                 case 'monthly':
-                    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-                    periodText = `Last Month: ${prevMonthStart.toLocaleDateString('en-US', shortMonthDayOptions)} - ${prevMonthEnd.toLocaleDateString('en-US', shortMonthDayOptions)}`;
+                    const mRange = getSelectedMonthRange();
+                    periodText = `Month: ${mRange.label}`;
                     break;
                 case 'alltime':
                     periodText = 'All Time';
@@ -2896,9 +2901,8 @@
             games = JSON.parse(localStorage.getItem('dominoGames')) || [];
 
             // Populate weekly dropdowns if needed
-            if (period === 'weekly') {
-                populateWeeklySelectors();
-            }
+            if (period === 'weekly') populateWeeklySelectors();
+            if (period === 'monthly') populateMonthlySelectors();
             
             loadTeamRankings(period);
             loadPlayerStats(period);
@@ -2977,6 +2981,32 @@
             const idx = weekSelect && weekSelect.value ? parseInt(weekSelect.value, 10) : 0;
             const safeIdx = Math.max(0, Math.min(idx, weeks.length - 1));
             return weeks[safeIdx] || { start: new Date(year, monthIndex, 1), end: new Date(year, monthIndex + 1, 0), label: '' };
+        }
+
+        function populateMonthlySelectors() {
+            const monthSelect = document.getElementById('monthlyMonthSelect');
+            if (!monthSelect) return;
+            const months = buildRecentMonths(12);
+            monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            monthSelect.value = currentKey;
+            monthSelect.onchange = () => showLeaderboard('monthly');
+        }
+
+        function getSelectedMonthRange() {
+            const monthSelect = document.getElementById('monthlyMonthSelect');
+            const now = new Date();
+            let year = now.getFullYear();
+            let monthIndex = now.getMonth();
+            if (monthSelect && monthSelect.value) {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                year = y; monthIndex = m - 1;
+            }
+            const start = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+            const end = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+            const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            return { start, end, label };
         }
 
         function loadTeamRankings(period) {
@@ -3381,8 +3411,9 @@
                     end = range.end;
                     break;
                 case 'monthly':
-                    start = startOfMonth(now);
-                    end = endOfMonth(now); // include all days of month
+                    const m = getSelectedMonthRange();
+                    start = m.start;
+                    end = m.end;
                     break;
                 case 'alltime':
                 default:
