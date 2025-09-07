@@ -246,7 +246,25 @@
         .dark input[type="radio"]:checked + label {
             color: #34D399;
         }
-    </style>
+  
+    /* Dark mode fixes for user dropdown (billing/sign out) */
+    .dark #userDropdown {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+
+    .dark #userDropdown button {
+        color: #f3f4f6;
+    }
+
+    .dark #userDropdown button:hover {
+        background-color: #4b5563;
+    }
+
+    .dark #userDropdown i {
+        color: #9ca3af;
+   }
+  </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
     <!-- Navigation -->
