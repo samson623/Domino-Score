@@ -2926,13 +2926,22 @@
 
             const weeks = buildWeeksForMonth(now.getFullYear(), now.getMonth());
             weekSelect.innerHTML = weeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
-            weekSelect.value = '0';
+
+            // Find and select the current week by default
+            let currentWeekIndex = 0;
+            for (let i = 0; i < weeks.length; i++) {
+                if (now >= weeks[i].start && now <= weeks[i].end) {
+                    currentWeekIndex = i;
+                    break;
+                }
+            }
+            weekSelect.value = currentWeekIndex;
 
             monthSelect.onchange = () => {
                 const [y, m] = monthSelect.value.split('-').map(Number);
                 const monthWeeks = buildWeeksForMonth(y, m - 1);
                 weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
-                weekSelect.value = '0';
+                weekSelect.value = '0'; // When month changes, default to the first week.
                 showLeaderboard('weekly');
             };
             weekSelect.onchange = () => showLeaderboard('weekly');
