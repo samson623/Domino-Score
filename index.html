@@ -2864,18 +2864,25 @@
             activeTab.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');
             activeTab.classList.add('bg-blue-500', 'text-white');
             
-            let periodText = '';
-            const now = new Date();
-            const options = { month: 'long', day: 'numeric', year: 'numeric' };
-            const monthYearOptions = { month: 'long', year: 'numeric' };
-            const shortMonthDayOptions = { month: 'short', day: 'numeric' };
-
             // Show/hide weekly selectors
             const weeklySelectors = document.getElementById('weeklySelectors');
             if (weeklySelectors) weeklySelectors.classList.toggle('hidden', period !== 'weekly');
             const monthlySelectors = document.getElementById('monthlySelectors');
             if (monthlySelectors) monthlySelectors.classList.toggle('hidden', period !== 'monthly');
 
+            // Reload latest data to keep leaderboard in sync
+            players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
+            teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
+            games = JSON.parse(localStorage.getItem('dominoGames')) || [];
+
+            // Populate weekly dropdowns if needed
+            if (period === 'weekly') populateWeeklySelectors();
+            if (period === 'monthly') populateMonthlySelectors();
+            
+            // Compute and set the period text AFTER selectors are populated to avoid stale/mismatched values
+            let periodText = '';
+            const now = new Date();
+            const options = { month: 'long', day: 'numeric', year: 'numeric' };
             switch (period) {
                 case 'daily':
                     periodText = `Today: ${now.toLocaleDateString('en-US', options)}`;
@@ -2894,15 +2901,6 @@
             }
             document.getElementById('teamPeriodInfo').textContent = periodText;
             document.getElementById('playerPeriodInfo').textContent = periodText;
-
-            // Reload latest data to keep leaderboard in sync
-            players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
-            teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
-            games = JSON.parse(localStorage.getItem('dominoGames')) || [];
-
-            // Populate weekly dropdowns if needed
-            if (period === 'weekly') populateWeeklySelectors();
-            if (period === 'monthly') populateMonthlySelectors();
             
             loadTeamRankings(period);
             loadPlayerStats(period);
@@ -2916,22 +2914,36 @@
             const weekSelect = document.getElementById('weeklyWeekSelect');
             if (!monthSelect || !weekSelect) return;
 
+            // Preserve existing selections if present
+            const prevMonthValue = monthSelect.value;
+            const prevWeekValue = weekSelect.value;
+
             const months = buildRecentMonths(12); // last 12 months
             monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
 
-            // Default to current month
+            // Default to current month unless a previous month is selected
             const now = new Date();
             const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
-            monthSelect.value = currentKey;
+            const targetMonth = prevMonthValue || currentKey;
+            monthSelect.value = targetMonth;
 
-            const weeks = buildWeeksForMonth(now.getFullYear(), now.getMonth());
-            weekSelect.innerHTML = weeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
-            weekSelect.value = '0';
+            // Build weeks for the selected month
+            const [selectedYear, selectedMonthNum] = monthSelect.value.split('-').map(Number);
+            const monthWeeks = buildWeeksForMonth(selectedYear, selectedMonthNum - 1);
+            weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+
+            // Keep week selection if month didn't change; otherwise default to first week
+            if (prevMonthValue === targetMonth && prevWeekValue !== '') {
+                weekSelect.value = prevWeekValue;
+            } else {
+                weekSelect.value = '0';
+            }
 
             monthSelect.onchange = () => {
                 const [y, m] = monthSelect.value.split('-').map(Number);
-                const monthWeeks = buildWeeksForMonth(y, m - 1);
-                weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+                const mWeeks = buildWeeksForMonth(y, m - 1);
+                weekSelect.innerHTML = mWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+                // Reset to first week when month changes
                 weekSelect.value = '0';
                 showLeaderboard('weekly');
             };
