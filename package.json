@@ -21,7 +21,7 @@
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
     "micro": "^10.0.1",
-    "serve": "14.2.4",
+    "serve": "^14.2.4",
     "stripe": "^18.4.0"
   },
   "devDependencies": {

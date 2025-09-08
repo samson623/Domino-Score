@@ -12,9 +12,40 @@ localPort = 3000
 externalPort = 80
 
 [[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
 localPort = 33289
 externalPort = 3001
 
 [[ports]]
 localPort = 34859
 externalPort = 3000
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Domino Score Server"
+
+[[workflows.workflow]]
+name = "Domino Score Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "serve -s . -l 5000"
+waitForPort = 5000
+
+[agent]
+expertMode = true
