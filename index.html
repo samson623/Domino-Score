@@ -773,6 +773,20 @@
                         <i class="fas fa-infinity mr-1"></i>All Time
                     </button>
                 </div>
+                <div id="historyWeeklySelectors" class="mt-3 hidden">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label for="historyWeeklyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
+                        <select id="historyWeeklyMonthSelect" class="p-2 border rounded-lg"></select>
+                        <label for="historyWeeklyWeekSelect" class="text-sm text-gray-600 dark:text-gray-300">Week</label>
+                        <select id="historyWeeklyWeekSelect" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
+                <div id="historyMonthlySelectors" class="mt-3 hidden">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label for="historyMonthlyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
+                        <select id="historyMonthlyMonthSelect" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
             </div>
             <div class="domino-card p-6">
                 <h3 class="text-xl font-bold mb-4 flex items-center justify-between">
@@ -782,6 +796,7 @@
                     </span>
                     <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
                         Total Games: <span id="totalGamesCount">0</span>
+                        <span id="historyPeriodInfo" class="ml-2 text-gray-500 dark:text-gray-400"></span>
                     </span>
                 </h3>
                 <div id="gameHistoryList" class="space-y-2">
@@ -1730,6 +1745,16 @@
             const activeTab = document.querySelector(`[onclick="showHistory('${period}')"]`);
             activeTab.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');
             activeTab.classList.add('bg-blue-500', 'text-white');
+
+            // Toggle history selectors
+            const hw = document.getElementById('historyWeeklySelectors');
+            const hm = document.getElementById('historyMonthlySelectors');
+            if (hw) hw.classList.toggle('hidden', period !== 'weekly');
+            if (hm) hm.classList.toggle('hidden', period !== 'monthly');
+
+            // Populate selectors as needed
+            if (period === 'weekly') populateHistoryWeeklySelectors();
+            if (period === 'monthly') populateHistoryMonthlySelectors();
             
             loadHistory();
         }
@@ -1740,7 +1765,25 @@
             teams = JSON.parse(localStorage.getItem('dominoTeams')) || [];
             games = JSON.parse(localStorage.getItem('dominoGames')) || [];
 
-            const filteredGames = filterGamesByPeriod(games, currentHistoryPeriod);
+            // Build period label
+            let periodText = '';
+            const now = new Date();
+            const options = { month: 'long', day: 'numeric', year: 'numeric' };
+            if (currentHistoryPeriod === 'daily') {
+                periodText = `Today: ${now.toLocaleDateString('en-US', options)}`;
+            } else if (currentHistoryPeriod === 'weekly') {
+                const { label } = getSelectedHistoryWeekRange();
+                periodText = `Week: ${label}`;
+            } else if (currentHistoryPeriod === 'monthly') {
+                const mRange = getSelectedHistoryMonthRange();
+                periodText = `Month: ${mRange.label}`;
+            } else {
+                periodText = 'All Time';
+            }
+            const hpi = document.getElementById('historyPeriodInfo');
+            if (hpi) hpi.textContent = periodText;
+
+            const filteredGames = filterGamesByPeriod(games, currentHistoryPeriod, true);
             document.getElementById('totalGamesCount').textContent = filteredGames.length;
             
             const sortedGames = [...filteredGames].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -2849,7 +2892,7 @@
 
         // Leaderboard section
         function loadLeaderboard() {
-            showLeaderboard('alltime');
+            showLeaderboard('weekly');
         }
 
         function showLeaderboard(period) {
@@ -2932,11 +2975,13 @@
             const monthWeeks = buildWeeksForMonth(selectedYear, selectedMonthNum - 1);
             weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
 
-            // Keep week selection if month didn't change; otherwise default to first week
+            // Choose current week by date unless preserving previous selection
             if (prevMonthValue === targetMonth && prevWeekValue !== '') {
                 weekSelect.value = prevWeekValue;
             } else {
-                weekSelect.value = '0';
+                const today = new Date();
+                const idx = monthWeeks.findIndex(w => today >= w.start && today <= w.end);
+                weekSelect.value = String(Math.max(0, idx));
             }
 
             monthSelect.onchange = () => {
@@ -2948,6 +2993,45 @@
                 showLeaderboard('weekly');
             };
             weekSelect.onchange = () => showLeaderboard('weekly');
+        }
+
+        // History: populate weekly selectors (month + week)
+        function populateHistoryWeeklySelectors() {
+            const monthSelect = document.getElementById('historyWeeklyMonthSelect');
+            const weekSelect = document.getElementById('historyWeeklyWeekSelect');
+            if (!monthSelect || !weekSelect) return;
+
+            const prevMonthValue = monthSelect.value;
+            const prevWeekValue = weekSelect.value;
+
+            const months = buildRecentMonths(12);
+            monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            const targetMonth = prevMonthValue || currentKey;
+            monthSelect.value = targetMonth;
+
+            const [selectedYear, selectedMonthNum] = monthSelect.value.split('-').map(Number);
+            const monthWeeks = buildWeeksForMonth(selectedYear, selectedMonthNum - 1);
+            weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+
+            if (prevMonthValue === targetMonth && prevWeekValue !== '') {
+                weekSelect.value = prevWeekValue;
+            } else {
+                const today = new Date();
+                const idx = monthWeeks.findIndex(w => today >= w.start && today <= w.end);
+                weekSelect.value = String(Math.max(0, idx));
+            }
+
+            monthSelect.onchange = () => {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                const mWeeks = buildWeeksForMonth(y, m - 1);
+                weekSelect.innerHTML = mWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
+                weekSelect.value = '0';
+                showHistory('weekly');
+            };
+            weekSelect.onchange = () => showHistory('weekly');
         }
 
         function buildRecentMonths(count) {
@@ -2995,6 +3079,23 @@
             return weeks[safeIdx] || { start: new Date(year, monthIndex, 1), end: new Date(year, monthIndex + 1, 0), label: '' };
         }
 
+        // History: compute selected week range based on history selectors
+        function getSelectedHistoryWeekRange() {
+            const monthSelect = document.getElementById('historyWeeklyMonthSelect');
+            const weekSelect = document.getElementById('historyWeeklyWeekSelect');
+            const now = new Date();
+            let year = now.getFullYear();
+            let monthIndex = now.getMonth();
+            if (monthSelect && monthSelect.value) {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                year = y; monthIndex = m - 1;
+            }
+            const weeks = buildWeeksForMonth(year, monthIndex);
+            const idx = weekSelect && weekSelect.value ? parseInt(weekSelect.value, 10) : 0;
+            const safeIdx = Math.max(0, Math.min(idx, weeks.length - 1));
+            return weeks[safeIdx] || { start: new Date(year, monthIndex, 1), end: new Date(year, monthIndex + 1, 0), label: '' };
+        }
+
         function populateMonthlySelectors() {
             const monthSelect = document.getElementById('monthlyMonthSelect');
             if (!monthSelect) return;
@@ -3006,8 +3107,36 @@
             monthSelect.onchange = () => showLeaderboard('monthly');
         }
 
+        // History: populate monthly selectors (month only)
+        function populateHistoryMonthlySelectors() {
+            const monthSelect = document.getElementById('historyMonthlyMonthSelect');
+            if (!monthSelect) return;
+            const months = buildRecentMonths(12);
+            monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            monthSelect.value = currentKey;
+            monthSelect.onchange = () => showHistory('monthly');
+        }
+
         function getSelectedMonthRange() {
             const monthSelect = document.getElementById('monthlyMonthSelect');
+            const now = new Date();
+            let year = now.getFullYear();
+            let monthIndex = now.getMonth();
+            if (monthSelect && monthSelect.value) {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                year = y; monthIndex = m - 1;
+            }
+            const start = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+            const end = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+            const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            return { start, end, label };
+        }
+
+        // History: compute selected month range based on history selectors
+        function getSelectedHistoryMonthRange() {
+            const monthSelect = document.getElementById('historyMonthlyMonthSelect');
             const now = new Date();
             let year = now.getFullYear();
             let monthIndex = now.getMonth();
@@ -3401,7 +3530,7 @@
             document.getElementById('petaroll-leaders-list').innerHTML = html;
         }
 
-        function filterGamesByPeriod(games, period) {
+        function filterGamesByPeriod(games, period, fromHistory = false) {
             const now = new Date();
 
             // Helpers normalized to local time
@@ -3418,12 +3547,12 @@
                     end = endOfDay(now);
                     break;
                 case 'weekly':
-                    const range = getSelectedWeekRange();
+                    const range = fromHistory ? getSelectedHistoryWeekRange() : getSelectedWeekRange();
                     start = range.start;
                     end = range.end;
                     break;
                 case 'monthly':
-                    const m = getSelectedMonthRange();
+                    const m = fromHistory ? getSelectedHistoryMonthRange() : getSelectedMonthRange();
                     start = m.start;
                     end = m.end;
                     break;
@@ -3952,14 +4081,16 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to create checkout session');
+                    const err = await response.json().catch(() => null);
+                    const msg = err?.error || 'Failed to create checkout session';
+                    throw new Error(msg);
                 }
 
                 const { url } = await response.json();
                 window.location.href = url;
             } catch (error) {
                 console.error('Upgrade error:', error);
-                showToast('Failed to start upgrade process');
+                showToast(error?.message || 'Failed to start upgrade process');
             }
         }
 
@@ -4041,7 +4172,7 @@
             } else if (sectionName === 'live') {
                 loadLiveSection();
             } else if (sectionName === 'history') {
-                showHistory('alltime');
+                showHistory('weekly');
             } else if (sectionName === 'billing' && currentUser) {
                 loadUserBilling();
             }
