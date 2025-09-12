@@ -2057,8 +2057,39 @@
                 
             } else if (currentGameMode === 'single') {
                 // Single mode dropdowns show only players
-                document.getElementById('player1Select').innerHTML = playerOptionsHtml;
-                document.getElementById('player2Select').innerHTML = playerOptionsHtml;
+                const player1Select = document.getElementById('player1Select');
+                const player2Select = document.getElementById('player2Select');
+
+                player1Select.innerHTML = playerOptionsHtml;
+                player2Select.innerHTML = playerOptionsHtml;
+
+                // Update available options whenever a player is selected
+                player1Select.onchange = () => updatePlayerSelectOptions('player1Select', 'player2Select');
+                player2Select.onchange = () => updatePlayerSelectOptions('player2Select', 'player1Select');
+
+                // Ensure each dropdown reflects the other's current value
+                updatePlayerSelectOptions('player1Select', 'player2Select');
+                updatePlayerSelectOptions('player2Select', 'player1Select');
+            }
+        }
+
+        function updatePlayerSelectOptions(changedId, otherId) {
+            const selected = document.getElementById(changedId).value;
+            const otherSelect = document.getElementById(otherId);
+            const previous = otherSelect.value;
+            const options = ['<option value="">Select player</option>'];
+
+            players.forEach(player => {
+                if (player.name !== selected) {
+                    options.push(`<option value="${player.name}">${player.name}</option>`);
+                }
+            });
+
+            otherSelect.innerHTML = options.join('');
+            if (previous && previous !== selected) {
+                otherSelect.value = previous;
+            } else {
+                otherSelect.value = '';
             }
         }
 
