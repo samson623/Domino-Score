@@ -888,6 +888,14 @@
                         <select id="monthlyMonthSelect" class="p-2 border rounded-lg"></select>
                     </div>
                 </div>
+                <div id="dailySelectors" class="mt-3 hidden">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label for="dailyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
+                        <select id="dailyMonthSelect" class="p-2 border rounded-lg"></select>
+                        <label for="dailyDaySelect" class="text-sm text-gray-600 dark:text-gray-300">Day</label>
+                        <select id="dailyDaySelect" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3038,6 +3046,8 @@
             if (weeklySelectors) weeklySelectors.classList.toggle('hidden', period !== 'weekly');
             const monthlySelectors = document.getElementById('monthlySelectors');
             if (monthlySelectors) monthlySelectors.classList.toggle('hidden', period !== 'monthly');
+            const dailySelectors = document.getElementById('dailySelectors');
+            if (dailySelectors) dailySelectors.classList.toggle('hidden', period !== 'daily');
 
             // Reload latest data to keep leaderboard in sync
             players = JSON.parse(localStorage.getItem('dominoPlayers')) || [];
@@ -3047,6 +3057,7 @@
             // Populate weekly dropdowns if needed
             if (period === 'weekly') populateWeeklySelectors();
             if (period === 'monthly') populateMonthlySelectors();
+            if (period === 'daily') populateDailySelectors();
             
             // Compute and set the period text AFTER selectors are populated to avoid stale/mismatched values
             let periodText = '';
@@ -3054,7 +3065,8 @@
             const options = { month: 'long', day: 'numeric', year: 'numeric' };
             switch (period) {
                 case 'daily':
-                    periodText = `Today: ${now.toLocaleDateString('en-US', options)}`;
+                    const selectedDate = getSelectedDay();
+                    periodText = `Date: ${selectedDate.toLocaleDateString('en-US', options)}`;
                     break;
                 case 'weekly':
                     const { label } = getSelectedWeekRange();
@@ -3119,6 +3131,54 @@
             weekSelect.onchange = () => showLeaderboard('weekly');
         }
 
+        function populateDailySelectors() {
+            const monthSelect = document.getElementById('dailyMonthSelect');
+            const daySelect = document.getElementById('dailyDaySelect');
+            if (!monthSelect || !daySelect) return;
+
+            const prevMonthValue = monthSelect.value;
+            const prevDayValue = daySelect.value;
+
+            const months = buildRecentMonths(12);
+            monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            monthSelect.value = prevMonthValue || currentMonthKey;
+
+            const [selectedYear, selectedMonthNum] = monthSelect.value.split('-').map(Number);
+            const monthDays = buildDaysForMonth(selectedYear, selectedMonthNum - 1);
+            daySelect.innerHTML = monthDays.map((d, i) => `<option value="${d.day}">${d.label}</option>`).join('');
+
+            if(prevMonthValue === monthSelect.value && prevDayValue) {
+                daySelect.value = prevDayValue;
+            } else {
+                daySelect.value = now.getDate();
+            }
+
+            monthSelect.onchange = () => {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                const mDays = buildDaysForMonth(y, m - 1);
+                daySelect.innerHTML = mDays.map((d, i) => `<option value="${d.day}">${d.label}</option>`).join('');
+                daySelect.value = '1';
+                showLeaderboard('daily');
+            };
+            daySelect.onchange = () => showLeaderboard('daily');
+        }
+
+        function buildDaysForMonth(year, monthIndex) {
+            const date = new Date(year, monthIndex, 1);
+            const days = [];
+            while (date.getMonth() === monthIndex) {
+                days.push({
+                    day: date.getDate(),
+                    label: date.getDate()
+                });
+                date.setDate(date.getDate() + 1);
+            }
+            return days;
+        }
+
         function buildRecentMonths(count) {
             const list = [];
             const now = new Date();
@@ -3162,6 +3222,27 @@
             const idx = weekSelect && weekSelect.value ? parseInt(weekSelect.value, 10) : 0;
             const safeIdx = Math.max(0, Math.min(idx, weeks.length - 1));
             return weeks[safeIdx] || { start: new Date(year, monthIndex, 1), end: new Date(year, monthIndex + 1, 0), label: '' };
+        }
+
+        function getSelectedDay() {
+            const monthSelect = document.getElementById('dailyMonthSelect');
+            const daySelect = document.getElementById('dailyDaySelect');
+            const now = new Date();
+            let year = now.getFullYear();
+            let monthIndex = now.getMonth();
+            let day = now.getDate();
+
+            if (monthSelect && monthSelect.value) {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                year = y;
+                monthIndex = m - 1;
+            }
+            if (daySelect && daySelect.value) {
+                day = parseInt(daySelect.value, 10);
+            }
+
+            const selectedDate = new Date(year, monthIndex, day);
+            return selectedDate;
         }
 
         function populateMonthlySelectors() {
@@ -3583,8 +3664,9 @@
             let start, end;
             switch (period) {
                 case 'daily':
-                    start = startOfDay(now);
-                    end = endOfDay(now);
+                    const selectedDate = getSelectedDay();
+                    start = startOfDay(selectedDate);
+                    end = endOfDay(selectedDate);
                     break;
                 case 'weekly':
                     const range = getSelectedWeekRange();
