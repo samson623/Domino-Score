@@ -874,6 +874,14 @@
                         <i class="fas fa-infinity mr-1"></i>All Time
                     </button>
                 </div>
+                <div id="dailySelectors" class="mt-3 hidden">
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label for="dailyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
+                        <select id="dailyMonthSelect" class="p-2 border rounded-lg"></select>
+                        <label for="dailyDaySelect" class="text-sm text-gray-600 dark:text-gray-300">Day</label>
+                        <select id="dailyDaySelect" class="p-2 border rounded-lg"></select>
+                    </div>
+                </div>
                 <div id="weeklySelectors" class="mt-3 hidden">
                     <div class="flex flex-wrap gap-2 items-center">
                         <label for="weeklyMonthSelect" class="text-sm text-gray-600 dark:text-gray-300">Month</label>
@@ -3034,6 +3042,8 @@
             activeTab.classList.add('bg-blue-500', 'text-white');
             
             // Show/hide weekly selectors
+            const dailySelectors = document.getElementById('dailySelectors');
+            if (dailySelectors) dailySelectors.classList.toggle('hidden', period !== 'daily');
             const weeklySelectors = document.getElementById('weeklySelectors');
             if (weeklySelectors) weeklySelectors.classList.toggle('hidden', period !== 'weekly');
             const monthlySelectors = document.getElementById('monthlySelectors');
@@ -3045,6 +3055,7 @@
             games = JSON.parse(localStorage.getItem('dominoGames')) || [];
 
             // Populate weekly dropdowns if needed
+            if (period === 'daily') populateDailySelectors();
             if (period === 'weekly') populateWeeklySelectors();
             if (period === 'monthly') populateMonthlySelectors();
             
@@ -3054,7 +3065,8 @@
             const options = { month: 'long', day: 'numeric', year: 'numeric' };
             switch (period) {
                 case 'daily':
-                    periodText = `Today: ${now.toLocaleDateString('en-US', options)}`;
+                    const dRange = getSelectedDayRange();
+                    periodText = `Day: ${dRange.label}`;
                     break;
                 case 'weekly':
                     const { label } = getSelectedWeekRange();
@@ -3076,6 +3088,71 @@
             loadOpponentComparison();
             loadStreaks(period);
             loadPetarollLeaders(period);
+        }
+
+        function populateDailySelectors() {
+            const monthSelect = document.getElementById('dailyMonthSelect');
+            const daySelect = document.getElementById('dailyDaySelect');
+            if (!monthSelect || !daySelect) return;
+
+            const prevMonthValue = monthSelect.value;
+            const prevDayValue = daySelect.value;
+
+            const months = buildRecentMonths(12);
+            monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
+
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+            const targetMonth = prevMonthValue || currentKey;
+            monthSelect.value = targetMonth;
+
+            const [selectedYear, selectedMonthNum] = monthSelect.value.split('-').map(Number);
+            const days = buildDaysForMonth(selectedYear, selectedMonthNum - 1);
+            daySelect.innerHTML = days.map(d => `<option value="${d.day}">${d.label}</option>`).join('');
+
+            if (prevMonthValue === targetMonth && prevDayValue) {
+                daySelect.value = prevDayValue;
+            } else {
+                daySelect.value = (targetMonth === currentKey) ? String(now.getDate()) : '1';
+            }
+
+            monthSelect.onchange = () => {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                const monthDays = buildDaysForMonth(y, m - 1);
+                daySelect.innerHTML = monthDays.map(d => `<option value="${d.day}">${d.label}</option>`).join('');
+                const now2 = new Date();
+                const key2 = `${now2.getFullYear()}-${now2.getMonth() + 1}`;
+                daySelect.value = (monthSelect.value === key2) ? String(now2.getDate()) : '1';
+                showLeaderboard('daily');
+            };
+            daySelect.onchange = () => showLeaderboard('daily');
+        }
+
+        function buildDaysForMonth(year, monthIndex /* 0-based */) {
+            const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+            const list = [];
+            const today = new Date();
+            for (let d = 1; d <= totalDays; d++) {
+                const date = new Date(year, monthIndex, d);
+                const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
+                list.push({ day: d, label: `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${isToday ? ' (Today)' : ''}` });
+            }
+            return list;
+        }
+
+        function getSelectedDayRange() {
+            const monthSelect = document.getElementById('dailyMonthSelect');
+            const daySelect = document.getElementById('dailyDaySelect');
+            let date = new Date();
+            if (monthSelect && daySelect && monthSelect.value && daySelect.value) {
+                const [y, m] = monthSelect.value.split('-').map(Number);
+                const d = parseInt(daySelect.value, 10) || 1;
+                date = new Date(y, m - 1, d);
+            }
+            const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+            const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+            const label = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            return { start, end, label };
         }
 
         function populateWeeklySelectors() {
@@ -3137,11 +3214,13 @@
             const first = new Date(year, monthIndex, 1, 0, 0, 0, 0);
             const last = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
             const weeks = [];
+            const today = new Date();
 
             let start = new Date(first);
             while (start <= last) {
                 const end = new Date(Math.min(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59, 999).getTime(), last.getTime()));
-                const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                const isCurrent = today >= start && today <= end;
+                const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${isCurrent ? ' (This Week)' : ''}`;
                 weeks.push({ start, end, label });
                 start = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1, 0, 0, 0, 0);
             }
@@ -3186,7 +3265,8 @@
             }
             const start = new Date(year, monthIndex, 1, 0, 0, 0, 0);
             const end = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
-            const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            const isThisMonth = year === now.getFullYear() && monthIndex === now.getMonth();
+            const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${isThisMonth ? ' (This Month)' : ''}`;
             return { start, end, label };
         }
 
@@ -3583,8 +3663,9 @@
             let start, end;
             switch (period) {
                 case 'daily':
-                    start = startOfDay(now);
-                    end = endOfDay(now);
+                    const dsel = getSelectedDayRange();
+                    start = dsel.start;
+                    end = dsel.end;
                     break;
                 case 'weekly':
                     const range = getSelectedWeekRange();
