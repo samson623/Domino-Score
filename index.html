@@ -2059,7 +2059,20 @@
                 // Single mode dropdowns show only players
                 document.getElementById('player1Select').innerHTML = playerOptionsHtml;
                 document.getElementById('player2Select').innerHTML = playerOptionsHtml;
+                document.getElementById('player1Select').onchange = () => syncPlayerSelections('player1Select', 'player2Select');
+                document.getElementById('player2Select').onchange = () => syncPlayerSelections('player2Select', 'player1Select');
+                syncPlayerSelections('player1Select', 'player2Select');
+                syncPlayerSelections('player2Select', 'player1Select');
             }
+        }
+
+        function syncPlayerSelections(changedSelectId, otherSelectId) {
+            const changedSelect = document.getElementById(changedSelectId);
+            const otherSelect = document.getElementById(otherSelectId);
+            const selectedValue = changedSelect.value;
+            Array.from(otherSelect.options).forEach(option => {
+                option.disabled = selectedValue !== '' && option.value === selectedValue;
+            });
         }
 
         function handleSavedTeamSelection(teamNumber, value) {
@@ -2585,7 +2598,9 @@
             }
             document.getElementById('player1Select').value = '';
             document.getElementById('player2Select').value = '';
-            
+            syncPlayerSelections('player1Select', 'player2Select');
+            syncPlayerSelections('player2Select', 'player1Select');
+
             loadLiveSection();
         }
 
