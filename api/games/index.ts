@@ -119,6 +119,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Game type and players are required' });
         }
 
+        // Check for duplicate players
+        const uniquePlayers = new Set(players);
+        if (uniquePlayers.size !== players.length) {
+          return res.status(400).json({ error: 'The same player cannot be selected for both sides of the game.' });
+        }
+
         const gameData = {
           user_id: user.id,
           game_type: gameType,
