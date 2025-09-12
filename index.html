@@ -2097,12 +2097,108 @@
                 document.getElementById('gameTeam1Player2Input').innerHTML = playerOptionsHtml;
                 document.getElementById('gameTeam2Player1Input').innerHTML = playerOptionsHtml;
                 document.getElementById('gameTeam2Player2Input').innerHTML = playerOptionsHtml;
+                // Ensure unique selections across all four team player dropdowns
+                setupUniquePlayerSelectionForTeam();
+                updateUniquePlayerDisabledForTeam();
+                updateSavedTeamOptionsDisabled();
                 
             } else if (currentGameMode === 'single') {
                 // Single mode dropdowns show only players
                 document.getElementById('player1Select').innerHTML = playerOptionsHtml;
                 document.getElementById('player2Select').innerHTML = playerOptionsHtml;
+                // Ensure unique selections across both single player dropdowns
+                setupUniquePlayerSelectionForSingle();
+                updateUniquePlayerDisabledForSingle();
             }
+        }
+
+        // Prevent duplicate player selections across dropdowns
+        function attachUniqueHandlerOnce(selectEl, handler) {
+            if (!selectEl) return;
+            if (selectEl.dataset.uniqueHandlerAttached === '1') return;
+            selectEl.addEventListener('change', handler);
+            selectEl.dataset.uniqueHandlerAttached = '1';
+        }
+
+        function updateDisabledForSelects(selectIds) {
+            const selects = selectIds.map(id => document.getElementById(id)).filter(Boolean);
+            const selectedValues = new Set(
+                selects.map(s => (s.value || '').trim()).filter(v => v)
+            );
+            selects.forEach(select => {
+                const currentValue = select.value;
+                Array.from(select.options).forEach(opt => {
+                    if (!opt.value) {
+                        opt.disabled = false;
+                        return;
+                    }
+                    if (opt.value === currentValue) {
+                        opt.disabled = false;
+                    } else {
+                        opt.disabled = selectedValues.has(opt.value);
+                    }
+                });
+            });
+        }
+
+        function setupUniquePlayerSelectionForSingle() {
+            const ids = ['player1Select', 'player2Select'];
+            const handler = () => updateDisabledForSelects(ids);
+            ids.forEach(id => attachUniqueHandlerOnce(document.getElementById(id), handler));
+        }
+
+        function updateUniquePlayerDisabledForSingle() {
+            updateDisabledForSelects(['player1Select', 'player2Select']);
+        }
+
+        function setupUniquePlayerSelectionForTeam() {
+            const ids = ['gameTeam1Player1Input', 'gameTeam1Player2Input', 'gameTeam2Player1Input', 'gameTeam2Player2Input'];
+            const handler = () => {
+                updateDisabledForSelects(ids);
+                updateSavedTeamOptionsDisabled();
+            };
+            ids.forEach(id => attachUniqueHandlerOnce(document.getElementById(id), handler));
+        }
+
+        function updateUniquePlayerDisabledForTeam() {
+            updateDisabledForSelects(['gameTeam1Player1Input', 'gameTeam1Player2Input', 'gameTeam2Player1Input', 'gameTeam2Player2Input']);
+            updateSavedTeamOptionsDisabled();
+        }
+
+        // Disable saved team options that would conflict with the other side's current selections
+        function updateSavedTeamOptionsDisabled() {
+            const t1Other = new Set([
+                (document.getElementById('gameTeam2Player1Input')?.value || '').trim(),
+                (document.getElementById('gameTeam2Player2Input')?.value || '').trim(),
+            ].filter(Boolean));
+            const t2Other = new Set([
+                (document.getElementById('gameTeam1Player1Input')?.value || '').trim(),
+                (document.getElementById('gameTeam1Player2Input')?.value || '').trim(),
+            ].filter(Boolean));
+
+            const map = [
+                { selectId: 'gameTeam1SavedTeamSelect', other: t1Other },
+                { selectId: 'gameTeam2SavedTeamSelect', other: t2Other },
+            ];
+
+            map.forEach(({ selectId, other }) => {
+                const sel = document.getElementById(selectId);
+                if (!sel) return;
+                Array.from(sel.options).forEach(opt => {
+                    if (!opt.value || !opt.value.startsWith('team:')) {
+                        opt.disabled = false;
+                        return;
+                    }
+                    const teamId = opt.value.split(':')[1];
+                    const team = teams.find(t => t.id === teamId);
+                    if (!team) {
+                        opt.disabled = false;
+                        return;
+                    }
+                    const conflicts = other.has(team.player1) || other.has(team.player2);
+                    opt.disabled = conflicts;
+                });
+            });
         }
 
         function handleSavedTeamSelection(teamNumber, value) {
@@ -2117,8 +2213,23 @@
             const selectedTeam = teams.find(t => t.id === teamId);
             
             if (selectedTeam) {
+                // Prevent selecting a team that conflicts with the other side's current selections
+                const otherTeamNumber = teamNumber === '1' ? '2' : '1';
+                const otherSelected = new Set([
+                    (document.getElementById(`gameTeam${otherTeamNumber}Player1Input`)?.value || '').trim(),
+                    (document.getElementById(`gameTeam${otherTeamNumber}Player2Input`)?.value || '').trim(),
+                ].filter(Boolean));
+
+                if (otherSelected.has(selectedTeam.player1) || otherSelected.has(selectedTeam.player2)) {
+                    showToast('That team conflicts with the other team\'s players.');
+                    updateSavedTeamOptionsDisabled();
+                    return;
+                }
+
                 player1Input.value = selectedTeam.player1;
                 player2Input.value = selectedTeam.player2;
+                updateUniquePlayerDisabledForTeam();
+                updateSavedTeamOptionsDisabled();
             }
         }
 
@@ -2629,6 +2740,10 @@
             document.getElementById('player1Select').value = '';
             document.getElementById('player2Select').value = '';
             
+            // Refresh disabled states so all options become selectable again
+            updateUniquePlayerDisabledForTeam();
+            updateUniquePlayerDisabledForSingle();
+
             loadLiveSection();
         }
 
