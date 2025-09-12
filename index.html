@@ -2060,6 +2060,14 @@
                 document.getElementById('player1Select').innerHTML = playerOptionsHtml;
                 document.getElementById('player2Select').innerHTML = playerOptionsHtml;
             }
+
+            // After populating, attach guards and initialize disabled options
+            setupSelectionGuards();
+            if (currentGameMode === 'team') {
+                updateTeamSelectionDisables();
+            } else if (currentGameMode === 'single') {
+                updateSingleSelectionDisables();
+            }
         }
 
         function handleSavedTeamSelection(teamNumber, value) {
@@ -2074,9 +2082,158 @@
             const selectedTeam = teams.find(t => t.id === teamId);
             
             if (selectedTeam) {
+                // Block if this saved team conflicts with the other team's current selections
+                const otherTeamNumber = teamNumber === '1' ? '2' : '1';
+                const otherP1 = document.getElementById(`gameTeam${otherTeamNumber}Player1Input`);
+                const otherP2 = document.getElementById(`gameTeam${otherTeamNumber}Player2Input`);
+                const otherLower = new Set([
+                    otherP1 && otherP1.value ? otherP1.value.toLowerCase() : '',
+                    otherP2 && otherP2.value ? otherP2.value.toLowerCase() : '',
+                ].filter(Boolean));
+                const selLower = [selectedTeam.player1.toLowerCase(), selectedTeam.player2.toLowerCase()];
+                const conflict = selLower.some(v => otherLower.has(v));
+                if (conflict) {
+                    showToast('That saved team conflicts with the other team selection.');
+                    updateSavedTeamSelectionDisables();
+                    return;
+                }
+
                 player1Input.value = selectedTeam.player1;
                 player2Input.value = selectedTeam.player2;
+                updateTeamSelectionDisables();
+                updateSavedTeamSelectionDisables();
             }
+        }
+
+        // Prevent duplicate selections across the four team player dropdowns
+        function updateTeamSelectionDisables() {
+            const selects = [
+                document.getElementById('gameTeam1Player1Input'),
+                document.getElementById('gameTeam1Player2Input'),
+                document.getElementById('gameTeam2Player1Input'),
+                document.getElementById('gameTeam2Player2Input'),
+            ].filter(Boolean);
+
+            const selectedLower = new Set(
+                selects
+                    .map(s => (s && s.value ? s.value.toLowerCase() : ''))
+                    .filter(v => v)
+            );
+
+            selects.forEach(select => {
+                if (!select) return;
+                const currentLower = select.value ? select.value.toLowerCase() : '';
+                Array.from(select.options).forEach(opt => {
+                    if (!opt.value) {
+                        opt.disabled = false; // keep placeholder enabled
+                        return;
+                    }
+                    const optLower = opt.value.toLowerCase();
+                    // Disable if chosen in another select
+                    opt.disabled = selectedLower.has(optLower) && optLower !== currentLower;
+                });
+            });
+
+            updateSavedTeamSelectionDisables();
+        }
+
+        // Prevent duplicate selections between Player 1 and Player 2 in single mode
+        function updateSingleSelectionDisables() {
+            const p1 = document.getElementById('player1Select');
+            const p2 = document.getElementById('player2Select');
+            if (!p1 || !p2) return;
+
+            const p1Lower = p1.value ? p1.value.toLowerCase() : '';
+            const p2Lower = p2.value ? p2.value.toLowerCase() : '';
+
+            Array.from(p1.options).forEach(opt => {
+                if (!opt.value) { opt.disabled = false; return; }
+                const lower = opt.value.toLowerCase();
+                opt.disabled = p2Lower && lower === p2Lower && lower !== p1Lower;
+            });
+            Array.from(p2.options).forEach(opt => {
+                if (!opt.value) { opt.disabled = false; return; }
+                const lower = opt.value.toLowerCase();
+                opt.disabled = p1Lower && lower === p1Lower && lower !== p2Lower;
+            });
+        }
+
+        function setupSelectionGuards() {
+            if (currentGameMode === 'team') {
+                const ids = [
+                    'gameTeam1Player1Input',
+                    'gameTeam1Player2Input',
+                    'gameTeam2Player1Input',
+                    'gameTeam2Player2Input',
+                ];
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && !el.__guardsAttached) {
+                        el.addEventListener('change', updateTeamSelectionDisables);
+                        el.__guardsAttached = true;
+                    }
+                });
+                const savedIds = ['gameTeam1SavedTeamSelect', 'gameTeam2SavedTeamSelect'];
+                savedIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && !el.__guardsAttached) {
+                        el.addEventListener('change', () => {
+                            // no-op here; actual handling is inline via onchange attribute
+                            // keep saved team options up to date
+                            updateSavedTeamSelectionDisables();
+                        });
+                        el.__guardsAttached = true;
+                    }
+                });
+            } else if (currentGameMode === 'single') {
+                const p1 = document.getElementById('player1Select');
+                const p2 = document.getElementById('player2Select');
+                if (p1 && !p1.__guardsAttached) {
+                    p1.addEventListener('change', updateSingleSelectionDisables);
+                    p1.__guardsAttached = true;
+                }
+                if (p2 && !p2.__guardsAttached) {
+                    p2.addEventListener('change', updateSingleSelectionDisables);
+                    p2.__guardsAttached = true;
+                }
+            }
+        }
+
+        // Disable saved team options that would conflict with current selections
+        function updateSavedTeamSelectionDisables() {
+            const s1 = document.getElementById('gameTeam1SavedTeamSelect');
+            const s2 = document.getElementById('gameTeam2SavedTeamSelect');
+            const t1p1 = document.getElementById('gameTeam1Player1Input');
+            const t1p2 = document.getElementById('gameTeam1Player2Input');
+            const t2p1 = document.getElementById('gameTeam2Player1Input');
+            const t2p2 = document.getElementById('gameTeam2Player2Input');
+            if (!s1 || !s2 || !t1p1 || !t1p2 || !t2p1 || !t2p2) return;
+
+            const teamSelects = [
+                { saved: s1, mine: [t1p1, t1p2], other: [t2p1, t2p2] },
+                { saved: s2, mine: [t2p1, t2p2], other: [t1p1, t1p2] },
+            ];
+
+            teamSelects.forEach(({ saved, mine, other }) => {
+                const myLower = new Set(mine.map(s => (s.value ? s.value.toLowerCase() : '')).filter(Boolean));
+                const otherLower = new Set(other.map(s => (s.value ? s.value.toLowerCase() : '')).filter(Boolean));
+                Array.from(saved.options).forEach(opt => {
+                    if (!opt.value || !opt.value.startsWith('team:')) {
+                        opt.disabled = false;
+                        return;
+                    }
+                    const teamId = opt.value.split(':')[1];
+                    const team = teams.find(t => t.id === teamId);
+                    if (!team) { opt.disabled = false; return; }
+                    const p1Lower = team.player1.toLowerCase();
+                    const p2Lower = team.player2.toLowerCase();
+                    // Disable if either player is already chosen on the other team
+                    // Allow if it's exactly matching my current picks (so user can re-select)
+                    const conflictsOther = otherLower.has(p1Lower) || otherLower.has(p2Lower);
+                    const matchesMine = myLower.has(p1Lower) && myLower.has(p2Lower);
+                    opt.disabled = conflictsOther && !matchesMine;
+                });
+            });
         }
 
         function startNewGame() {
@@ -2105,6 +2262,18 @@
                 if (uniqueNames.size !== 4) {
                     showToast('Please enter four unique player names for the game.');
                     return;
+                }
+
+                // Extra guard: teams cannot be identical (ignoring order)
+                const team1Set = new Set([t1p1.toLowerCase(), t1p2.toLowerCase()]);
+                const team2Set = new Set([t2p1.toLowerCase(), t2p2.toLowerCase()]);
+                if (team1Set.size === 2 && team2Set.size === 2) {
+                    let same = true;
+                    team1Set.forEach(p => { if (!team2Set.has(p)) same = false; });
+                    if (same) {
+                        showToast('Teams must be different.');
+                        return;
+                    }
                 }
 
                 allPlayerNames.forEach(addPlayerIfNotExists);
