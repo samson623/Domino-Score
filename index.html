@@ -3178,12 +3178,17 @@
             const monthWeeks = buildWeeksForMonth(selectedYear, selectedMonthNum - 1);
             weekSelect.innerHTML = monthWeeks.map((w, i) => `<option value="${i}">${w.label}</option>`).join('');
 
-            // Keep week selection if month didn't change; otherwise default to first week
+            // Determine which week should be selected by default
+            let defaultWeekValue = '0';
             if (prevMonthValue === targetMonth && prevWeekValue !== '') {
-                weekSelect.value = prevWeekValue;
-            } else {
-                weekSelect.value = '0';
+                defaultWeekValue = prevWeekValue;
+            } else if (targetMonth === currentKey) {
+                const currentWeekIndex = monthWeeks.findIndex(week => now >= week.start && now <= week.end);
+                if (currentWeekIndex >= 0) {
+                    defaultWeekValue = String(currentWeekIndex);
+                }
             }
+            weekSelect.value = defaultWeekValue;
 
             monthSelect.onchange = () => {
                 const [y, m] = monthSelect.value.split('-').map(Number);
@@ -3246,11 +3251,13 @@
         function populateMonthlySelectors() {
             const monthSelect = document.getElementById('monthlyMonthSelect');
             if (!monthSelect) return;
+            const previousValue = monthSelect.value;
             const months = buildRecentMonths(12);
             monthSelect.innerHTML = months.map(m => `<option value="${m.year}-${m.month}">${m.label}</option>`).join('');
             const now = new Date();
             const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
-            monthSelect.value = currentKey;
+            const hasPrevious = months.some(m => `${m.year}-${m.month}` === previousValue);
+            monthSelect.value = hasPrevious ? previousValue : currentKey;
             monthSelect.onchange = () => showLeaderboard('monthly');
         }
 
