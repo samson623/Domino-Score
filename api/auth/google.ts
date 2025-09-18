@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { getSiteUrl } from '../_utils/site-url';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,15 +17,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'signin') {
       // Initiate Google OAuth sign-in
-      const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/') || 'https://domino-score.vercel.app';
-      const finalRedirectTo = redirectTo || `${origin}/`;
-      
+      const siteUrl = getSiteUrl(req);
+      let finalRedirectTo = redirectTo;
+
+      if (!finalRedirectTo) {
+        finalRedirectTo = `${siteUrl}/`;
+      } else if (finalRedirectTo.startsWith('/')) {
+        finalRedirectTo = `${siteUrl}${finalRedirectTo}`;
+      }
+
       console.log('Google OAuth signin initiated:', {
-        origin,
+        siteUrl,
+        requestedRedirect: redirectTo,
         redirectTo: finalRedirectTo,
         userAgent: req.headers['user-agent']
       });
-      
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
