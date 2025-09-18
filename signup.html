@@ -130,21 +130,40 @@
 
     <script>
         let supabase = null;
+        let siteUrl = window.location.origin;
 
         // Initialize Supabase
         async function initSupabase() {
             try {
+                const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+                
                 const response = await fetch('/api/public-env');
                 if (response.ok) {
-                    const { supabaseUrl, supabaseAnonKey } = await response.json();
-                    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+                    const { supabaseUrl, supabaseAnonKey, siteUrl: envSiteUrl } = await response.json();
+                    if (envSiteUrl) {
+                        siteUrl = envSiteUrl;
+                    }
+                    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true
+                        }
+                    });
                 } else {
                     // Fallback to client-side config
                     const config = window.__PUBLIC_ENV__ || {
                         supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
                         supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
                     };
-                    supabase = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+                    if (config.siteUrl) {
+                        siteUrl = config.siteUrl;
+                    }
+                    supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Failed to initialize Supabase:', error);
@@ -169,6 +188,16 @@
             }, 3000);
         }
 
+        function buildSiteUrl(path = '/', search = '') {
+            const baseUrl = siteUrl || window.location.origin;
+            const normalizedBase = baseUrl.replace(/\/$/, '');
+            const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+            const formattedSearch = search
+                ? (search.startsWith('?') ? search : `?${search}`)
+                : '';
+            return `${normalizedBase}${normalizedPath}${formattedSearch}`;
+        }
+
         // Handle Google Sign-Up
         document.getElementById('googleSignUpBtn').addEventListener('click', async () => {
             if (!supabase) {
@@ -183,10 +212,10 @@
             googleBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Signing up with Google...';
 
             try {
-                const { data, error } = await supabase.auth.signInWithOAuth({
+                const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: window.location.origin + '/',
+                        redirectTo: buildSiteUrl('/'),
                         queryParams: {
                             access_type: 'offline',
                             prompt: 'consent',

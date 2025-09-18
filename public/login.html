@@ -57,9 +57,20 @@
     const toSignIn = document.getElementById('toSignIn');
     const signInView = document.getElementById('signInView');
     const signUpView = document.getElementById('signUpView');
+    let siteUrl = location.origin;
 
     toSignUp.onclick = () => { signInView.classList.add('hidden'); signUpView.classList.remove('hidden'); errEl.textContent = ''; };
     toSignIn.onclick = () => { signUpView.classList.add('hidden'); signInView.classList.remove('hidden'); errEl.textContent = ''; };
+
+    const buildSiteUrl = (path = '/', search = '') => {
+      const base = siteUrl || location.origin;
+      const normalizedBase = base.replace(/\/$/, '');
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      const formattedSearch = search
+        ? (search.startsWith('?') ? search : `?${search}`)
+        : '';
+      return `${normalizedBase}${normalizedPath}${formattedSearch}`;
+    };
 
     async function getEnv() {
       try {
@@ -69,20 +80,28 @@
         // ignore and try fallback
       }
       const f = window.__PUBLIC_ENV__ || {};
-      if (f.supabaseUrl && f.supabaseAnonKey) return f;
+      if (f.supabaseUrl && f.supabaseAnonKey) {
+        if (f.siteUrl) {
+          siteUrl = f.siteUrl;
+        }
+        return f;
+      }
       throw new Error('Env not available');
     }
 
     async function init() {
       try {
-        const { supabaseUrl, supabaseAnonKey } = await getEnv();
+        const { supabaseUrl, supabaseAnonKey, siteUrl: envSiteUrl } = await getEnv();
+        if (envSiteUrl) {
+          siteUrl = envSiteUrl;
+        }
         const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
 
         googleBtn.onclick = async () => {
           errEl.textContent = '';
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${location.origin}/index.html` }
+            options: { redirectTo: buildSiteUrl('/index.html') }
           });
           if (error) errEl.textContent = error.message;
         };
@@ -93,7 +112,7 @@
           const password = document.getElementById('password').value;
           const { error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) { errEl.textContent = error.message; return; }
-          const target = (location.protocol === 'file:') ? '../index.html' : '/index.html';
+          const target = (location.protocol === 'file:') ? '../index.html' : buildSiteUrl('/index.html');
           window.location.href = target;
         };
 
