@@ -150,20 +150,13 @@
                         }
                     });
                 } else {
-                    // Fallback to client-side config
-                    const config = window.__PUBLIC_ENV__ || {
-                        supabaseUrl: 'https://vsjdinqfxazedrjigssx.supabase.co',
-                        supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzamRpbnFmeGF6ZWRyamlnc3N4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyMzE4OTksImV4cCI6MjA3MTgwNzg5OX0.hz7sZULnVNbqDEZQqSyTvPuK8d7n8QeD0U_TyDVEDTs'
-                    };
-                    if (config.siteUrl) {
-                        siteUrl = config.siteUrl;
-                    }
-                    supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-                        auth: {
-                            persistSession: true,
-                            autoRefreshToken: true
-                        }
-                    });
+                    // Configuration is missing
+                    console.error('Authentication service is not configured.');
+                    showToast('Authentication service is currently unavailable. Please contact support.', 'error');
+                    // Disable signup buttons if config is missing
+                    document.getElementById('signupBtn').disabled = true;
+                    document.getElementById('googleSignUpBtn').disabled = true;
+                    return;
                 }
             } catch (error) {
                 console.error('Failed to initialize Supabase:', error);
