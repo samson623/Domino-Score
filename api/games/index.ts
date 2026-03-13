@@ -2,8 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE!
+  (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)!,
+  (process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY)!
 );
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -91,13 +91,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (req.method === 'GET') {
         // Get user's games
         const { type, limit = 20, offset = 0 } = req.query;
+        const parsedLimit = Math.max(1, Math.min(100, Number(limit) || 20));
+        const parsedOffset = Math.max(0, Number(offset) || 0);
 
         let query = supabase
           .from('games')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .range(offset as number, (offset as number) + (limit as number) - 1);
+          .range(parsedOffset, parsedOffset + parsedLimit - 1);
 
         if (type) {
           query = query.eq('game_type', type);
@@ -115,14 +117,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Create a new game
         const { gameType, players, initialData, teamId } = req.body;
 
-        if (!gameType || !players || !Array.isArray(players) || players.length === 0) {
-          return res.status(400).json({ error: 'Game type and players are required' });
+        if (!gameType) {
+          return res.status(400).json({ error: 'Game type is required' });
+        }
+
+        let resolvedPlayers = players;
+
+        // Team games can derive players automatically from active team memberships.
+        if ((!resolvedPlayers || !Array.isArray(resolvedPlayers) || resolvedPlayers.length === 0) && teamId) {
+          const { data: teamMembers, error: teamMembersError } = await supabase
+            .rpc('get_team_members', { team_uuid: teamId as string });
+
+          if (teamMembersError) {
+            return res.status(500).json({ error: 'Failed to load team members for game' });
+          }
+
+          resolvedPlayers = (teamMembers || []).filter((member: any) => member.is_active !== false);
+        }
+
+        if (!Array.isArray(resolvedPlayers) || resolvedPlayers.length === 0) {
+          return res.status(400).json({ error: 'Players are required (or provide a valid teamId)' });
         }
 
         const gameData = {
           user_id: user.id,
           game_type: gameType,
-          players: players,
+          players: resolvedPlayers,
           scores: initialData?.scores || {},
           completed: false,
           created_at: new Date().toISOString(),

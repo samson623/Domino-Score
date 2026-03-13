@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 
 const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)!,
+  (process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY)!
 );
 
 interface AddMemberRequest {
@@ -37,7 +37,7 @@ export default async function handler(req: any, res: any) {
     let decoded: any;
     
     try {
-      decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!);
+      decoded = jwt.verify(token, (process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET)!);
     } catch (error) {
       return res.status(401).json({ error: 'Invalid token' });
     }
